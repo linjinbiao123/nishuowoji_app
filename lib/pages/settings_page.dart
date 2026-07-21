@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
+import '../services/notification_service.dart';
 import 'data_stats_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -19,6 +20,8 @@ class SettingsPageState extends State<SettingsPage> {
   int _totalCatCount = 0;
   String _ledgerName = '日常账本';
   int _bgIndex = 0;
+  bool _reminderEnabled = false;
+  int _reminderMinutes = 20 * 60;
 
   @override
   void initState() {
@@ -32,6 +35,8 @@ class SettingsPageState extends State<SettingsPage> {
     final deleted = await Storage.getDeletedCategories();
     final ledger = await Storage.getCurrentLedger();
     final bgIndex = await Storage.getBgIndex();
+    final reminderEnabled = await Storage.getReminderEnabled();
+    final reminderMinutes = await Storage.getReminderMinutes();
 
     // 有效分类总数 = 内置支出 + 内置收入 + 自定义，排除已删除（与记账页完全一致）
     int total = 0;
@@ -50,11 +55,95 @@ class SettingsPageState extends State<SettingsPage> {
       _totalCatCount = total;
       _ledgerName = ledger?.name ?? '日常账本';
       _bgIndex = bgIndex;
+      _reminderEnabled = reminderEnabled;
+      _reminderMinutes = reminderMinutes;
     });
   }
 
   /// 供父页面通过 GlobalKey 调用（切换账本/数据变更后刷新）
   void refresh() => _loadInfo();
+
+  // ---------------- 每日记账提醒 ----------------
+
+  String _formatReminderTime() {
+    final h = _reminderMinutes ~/ 60;
+    final m = _reminderMinutes % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _toggleReminder(bool on) async {
+    setState(() => _reminderEnabled = on);
+    await Storage.setReminderEnabled(on);
+    if (on) {
+      await NotificationService.scheduleDailyReminder(
+        _reminderMinutes ~/ 60,
+        _reminderMinutes % 60,
+      );
+    } else {
+      await NotificationService.cancelDailyReminder();
+    }
+  }
+
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: _reminderMinutes ~/ 60,
+        minute: _reminderMinutes % 60,
+      ),
+    );
+    if (picked == null) return;
+    final minutes = picked.hour * 60 + picked.minute;
+    setState(() => _reminderMinutes = minutes);
+    await Storage.setReminderMinutes(minutes);
+    // 已开启提醒则按新时间重新安排
+    if (_reminderEnabled) {
+      await NotificationService.scheduleDailyReminder(
+        picked.hour,
+        picked.minute,
+      );
+    }
+  }
+
+  Widget _buildReminderToggle() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => _toggleReminder(!_reminderEnabled),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.16),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.notifications_outlined,
+                  color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('每日记账提醒', style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  )),
+                ],
+              ),
+            ),
+            Switch(
+              value: _reminderEnabled,
+              onChanged: _toggleReminder,
+              activeColor: AppColors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   // ---------------- 统计页背景选择 ----------------
 
@@ -254,6 +343,21 @@ class SettingsPageState extends State<SettingsPage> {
                 ),
               ]),
               const SizedBox(height: 20),
+              // 提醒
+              _buildSectionTitle('提醒'),
+              const SizedBox(height: 10),
+              _buildCard([
+                _buildReminderToggle(),
+                const Divider(height: 1, indent: 52, color: AppDark.divider),
+                _buildSettingItem(
+                  icon: Icons.access_time,
+                  iconColor: AppColors.primary,
+                  title: '提醒时间',
+                  subtitle: '每天 ${_formatReminderTime()} 提醒',
+                  onTap: _pickReminderTime,
+                ),
+              ]),
+              const SizedBox(height: 20),
               // 分类管理
               _buildSectionTitle('分类管理'),
               const SizedBox(height: 10),
@@ -296,7 +400,7 @@ class SettingsPageState extends State<SettingsPage> {
                 _buildSettingItem(
                   icon: Icons.info_outline,
                   iconColor: AppColors.textSecondary,
-                  title: '你说我记',
+                  title: '说记',
                   subtitle: '版本 1.0.0',
                   onTap: null,
                 ),

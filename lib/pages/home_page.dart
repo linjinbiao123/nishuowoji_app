@@ -226,7 +226,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     _budgetKey.currentState?.refresh();
                   }
                 },
-                backgroundColor: AppColors.success,
+                backgroundColor: theme.accent,
                 child: const Icon(Icons.add, color: Colors.white, size: 28),
               ),
             )

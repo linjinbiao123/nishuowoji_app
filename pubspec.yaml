@@ -1,5 +1,5 @@
 name: nishuowoji_app
-description: "记账 App - 你说我记"
+description: "记账 App - 说记"
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -14,6 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   shared_preferences: ^2.2.0
   fl_chart: ^0.66.0
+  flutter_local_notifications: ^19.0.0
 
 dev_dependencies:
   flutter_test:

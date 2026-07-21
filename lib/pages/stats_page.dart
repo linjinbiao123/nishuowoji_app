@@ -15,7 +15,6 @@ class StatsPageState extends State<StatsPage> {
   bool _isMonthly = true; // 月度/年度切换
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
-  int _chartType = 1; // 0=柱状图, 1=折线图
   int _trendType = 0; // 0=支出, 1=收入
 
   List<Record> _records = [];
@@ -344,11 +343,20 @@ class StatsPageState extends State<StatsPage> {
     }
   }
 
+  /// 紧凑金额文本（用于日历小格子）：满万显示 w、满千显示 k、其余保留一位小数（整数不带小数）
+  String _compactAmount(double v) {
+    if (v >= 10000) return '${(v / 10000).toStringAsFixed(1)}w';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
+    if (v == v.roundToDouble()) return '${v.toInt()}';
+    return v.toStringAsFixed(1);
+  }
+
   /// 月度模式：弹出日历，点选任意日期即跳转到该月统计
-  void _showCalendarPicker() {
+  void _showCalendarPicker() async {
     int pickerYear = _selectedYear;
     int pickerMonth = _selectedMonth;
     final now = DateTime.now();
+    final accent = AppBgTheme.all[(await Storage.getBgIndex()) % AppBgTheme.all.length].accent;
 
     showModalBottomSheet(
       context: context,
@@ -365,11 +373,11 @@ class StatsPageState extends State<StatsPage> {
               final firstDay = DateTime(pickerYear, pickerMonth, 1);
               final daysInMonth = DateTime(pickerYear, pickerMonth + 1, 0).day;
               final startWeekday = firstDay.weekday % 7; // 0=周日
-              // 当月有记录的日子
-              final daysWithRecords = <int>{};
+              // 当月每日支出合计（日 -> 金额），用于日历直接展示每天花了多少
+              final dailyExpense = <int, double>{};
               for (final r in _records) {
-                if (r.time.year == pickerYear && r.time.month == pickerMonth) {
-                  daysWithRecords.add(r.time.day);
+                if (r.time.year == pickerYear && r.time.month == pickerMonth && r.isExpense) {
+                  dailyExpense[r.time.day] = (dailyExpense[r.time.day] ?? 0) + r.amount;
                 }
               }
 
@@ -414,12 +422,12 @@ class StatsPageState extends State<StatsPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.15),
+                              color: accent.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                              border: Border.all(color: accent.withOpacity(0.4)),
                             ),
-                            child: const Text('今天', style: TextStyle(
-                              color: Color(0xFF34D399), fontSize: 12, fontWeight: FontWeight.w700,
+                            child: Text('今天', style: TextStyle(
+                              color: accent, fontSize: 12, fontWeight: FontWeight.w700,
                             )),
                           ),
                         ),
@@ -457,7 +465,7 @@ class StatsPageState extends State<StatsPage> {
                         if (index < startWeekday) return const SizedBox();
                         final day = index - startWeekday + 1;
                         final isToday = pickerYear == now.year && pickerMonth == now.month && day == now.day;
-                        final hasRecord = daysWithRecords.contains(day);
+                        final dayExpense = dailyExpense[day] ?? 0;
                         return GestureDetector(
                           onTap: () {
                             setState(() {
@@ -470,7 +478,7 @@ class StatsPageState extends State<StatsPage> {
                           child: Container(
                             margin: const EdgeInsets.all(2),
                             decoration: BoxDecoration(
-                              color: isToday ? const Color(0xFF10B981) : Colors.transparent,
+                              color: isToday ? accent : Colors.transparent,
                               borderRadius: BorderRadius.circular(9),
                             ),
                             child: Column(
@@ -484,14 +492,16 @@ class StatsPageState extends State<StatsPage> {
                                     color: isToday ? Colors.white : Colors.white.withOpacity(0.85),
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Container(
-                                  width: 4, height: 4,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: hasRecord
-                                        ? (isToday ? Colors.white : const Color(0xFF34D399))
-                                        : Colors.transparent,
+                                const SizedBox(height: 1),
+                                Text(
+                                  dayExpense > 0 ? '-${_compactAmount(dayExpense)}' : '',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.1,
+                                    color: isToday
+                                        ? Colors.white
+                                        : (dayExpense > 0 ? _expenseColor : Colors.transparent),
                                   ),
                                 ),
                               ],
@@ -515,9 +525,10 @@ class StatsPageState extends State<StatsPage> {
   }
 
   /// 年度模式：弹出年份选择器（12 年/页），点选即跳转该年统计
-  void _showYearPicker() {
+  void _showYearPicker() async {
     int pageStart = (_selectedYear ~/ 12) * 12;
     final currentYear = DateTime.now().year;
+    final accent = AppBgTheme.all[(await Storage.getBgIndex()) % AppBgTheme.all.length].accent;
 
     showModalBottomSheet(
       context: context,
@@ -585,14 +596,14 @@ class StatsPageState extends State<StatsPage> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF10B981)
+                                  ? accent
                                   : Colors.white.withOpacity(0.06),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isSelected
-                                    ? const Color(0xFF10B981)
+                                    ? accent
                                     : (isCurrent
-                                        ? const Color(0xFF34D399).withOpacity(0.5)
+                                        ? accent.withOpacity(0.5)
                                         : Colors.white.withOpacity(0.10)),
                               ),
                             ),
@@ -604,7 +615,7 @@ class StatsPageState extends State<StatsPage> {
                                   fontWeight: isSelected || isCurrent ? FontWeight.w800 : FontWeight.w600,
                                   color: isSelected
                                       ? Colors.white
-                                      : (isCurrent ? const Color(0xFF34D399) : Colors.white.withOpacity(0.8)),
+                                      : (isCurrent ? accent : Colors.white.withOpacity(0.8)),
                                 ),
                               ),
                             ),
@@ -728,10 +739,6 @@ class StatsPageState extends State<StatsPage> {
               _buildTrendTypeBtn('支出', 0, _expenseColor),
               const SizedBox(width: 8),
               _buildTrendTypeBtn('收入', 1, _incomeColor),
-              const Spacer(),
-              _buildChartTypeBtn('柱状', 0),
-              const SizedBox(width: 6),
-              _buildChartTypeBtn('折线', 1),
             ],
           ),
           const SizedBox(height: 16),
@@ -740,9 +747,7 @@ class StatsPageState extends State<StatsPage> {
             child: !hasData
                 ? Center(child: Text('暂无数据',
                     style: TextStyle(color: Colors.white.withOpacity(0.35))))
-                : _chartType == 0
-                    ? _buildBarChart(data, trendColor)
-                    : _buildLineChart(data, trendColor),
+                : _buildBarChart(data, trendColor),
           ),
         ],
       ),
@@ -768,29 +773,6 @@ class StatsPageState extends State<StatsPage> {
           style: TextStyle(
             color: selected ? Colors.white : Colors.white.withOpacity(0.6),
             fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChartTypeBtn(String text, int type) {
-    final selected = _chartType == type;
-    return GestureDetector(
-      onTap: () => setState(() => _chartType = type),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white.withOpacity(0.22) : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.white.withOpacity(0.5),
-            fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -916,149 +898,6 @@ class StatsPageState extends State<StatsPage> {
             ],
           );
         }),
-      ),
-    );
-  }
-
-  Widget _buildLineChart(Map<int, double> data, Color color) {
-    // 月度: 最近7天; 年度: 12个月
-    final int startDay;
-    final int endDay;
-    if (_isMonthly) {
-      final daysInMonth = DateTime(_selectedYear, _selectedMonth + 1, 0).day;
-      final today = DateTime.now().day;
-      endDay = (_selectedMonth == DateTime.now().month) ? today : daysInMonth;
-      startDay = (endDay - 6).clamp(1, daysInMonth);
-    } else {
-      startDay = 1;
-      endDay = 12;
-    }
-
-    final spots = <FlSpot>[];
-    for (int i = startDay; i <= endDay; i++) {
-      spots.add(FlSpot(i.toDouble(), data[i] ?? 0));
-    }
-
-    final visibleValues = <double>[];
-    for (int i = startDay; i <= endDay; i++) {
-      visibleValues.add(data[i] ?? 0);
-    }
-    final maxValue = visibleValues.isEmpty ? 100.0 : visibleValues.map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
-    final minValue = visibleValues.isEmpty ? 0.0 : visibleValues.reduce((a, b) => a < b ? a : b);
-    final maxY = maxValue > 0 ? maxValue * 1.2 : 100.0;
-    final minY = minValue > 0 ? minValue * 0.8 : 0.0;
-    final yInterval = (maxY - minY) > 0 ? (maxY - minY) / 3 : 100.0;
-    final range = endDay - startDay;
-
-    return LineChart(
-      LineChartData(
-        minX: startDay.toDouble(),
-        maxX: endDay.toDouble(),
-        maxY: maxY,
-        minY: minY,
-        lineTouchData: LineTouchData(
-          enabled: true,
-          touchTooltipData: LineTouchTooltipData(
-            tooltipBgColor: const Color(0xFF1E293B).withOpacity(0.95),
-            getTooltipItems: (touchedSpots) {
-              return touchedSpots.map((spot) {
-                final unit = _isMonthly ? '日' : '月';
-                return LineTooltipItem(
-                  '${spot.x.toInt()}$unit\n',
-                  TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
-                  children: [
-                    TextSpan(
-                      text: '¥${spot.y.toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                );
-              }).toList();
-            },
-          ),
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: range <= 7 ? 1 : (range <= 15 ? 2 : 5),
-              getTitlesWidget: (value, meta) {
-                final d = value.toInt();
-                if (d < startDay || d > endDay) return const SizedBox();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text('$d', style: TextStyle(
-                    color: Colors.white.withOpacity(0.38), fontSize: 10,
-                  )),
-                );
-              },
-              reservedSize: 22,
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 42,
-              interval: yInterval,
-              getTitlesWidget: (value, meta) {
-                if (value == 0) return const SizedBox();
-                if (value >= 1000) {
-                  return Text('${(value / 1000).toStringAsFixed(1)}k', style: TextStyle(
-                    color: Colors.white.withOpacity(0.38), fontSize: 10,
-                  ));
-                }
-                return Text('${value.toInt()}', style: TextStyle(
-                  color: Colors.white.withOpacity(0.38), fontSize: 10,
-                ));
-              },
-            ),
-          ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        borderData: FlBorderData(show: false),
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: yInterval,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.white.withOpacity(0.07),
-            strokeWidth: 1,
-            dashArray: [4, 4],
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: false,
-            color: color,
-            barWidth: 2.5,
-            isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              checkToShowDot: (spot, barData) {
-                return (data[spot.x.toInt()] ?? 0) != 0;
-              },
-              getDotPainter: (spot, percent, barData, index) {
-                return FlDotCirclePainter(
-                  radius: 4,
-                  color: Colors.white,
-                  strokeWidth: 2,
-                  strokeColor: color,
-                );
-              },
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors: [color.withOpacity(0.25), color.withOpacity(0.02)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

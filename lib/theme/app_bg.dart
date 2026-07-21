@@ -6,23 +6,33 @@ class AppBgTheme {
   final String name;
   final List<Color> base; // 底层渐变（左上 → 右下）
   final List<Color> glows; // 两个环境光晕颜色
-  const AppBgTheme({required this.name, required this.base, required this.glows});
+  final Color accent; // 强调色（FAB/按钮等品牌元素跟随主题）
+  const AppBgTheme({required this.name, required this.base, required this.glows, required this.accent});
 
   static const List<AppBgTheme> all = [
     AppBgTheme(
       name: '深空蓝',
       base: [Color(0xFF0B1220), Color(0xFF152036)],
       glows: [Color(0xFF38BDF8), Color(0xFF6366F1)],
+      accent: Color(0xFF38BDF8),
     ),
     AppBgTheme(
       name: '极光紫',
       base: [Color(0xFF170E29), Color(0xFF251641)],
       glows: [Color(0xFFA78BFA), Color(0xFFF472B6)],
+      accent: Color(0xFFA78BFA),
     ),
     AppBgTheme(
       name: '翡翠绿',
       base: [Color(0xFF081811), Color(0xFF0F2B1E)],
       glows: [Color(0xFF34D399), Color(0xFF2DD4BF)],
+      accent: Color(0xFF10B981),
+    ),
+    AppBgTheme(
+      name: '樱花粉',
+      base: [Color(0xFF1A0B12), Color(0xFF2B1220)],
+      glows: [Color(0xFFF472B6), Color(0xFFFB7185)],
+      accent: Color(0xFFEC4899),
     ),
   ];
 }

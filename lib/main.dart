@@ -3,11 +3,21 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/home_page.dart';
 import 'theme/app_theme.dart';
 import 'services/storage.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // 首次打开自动创建"日常账本"
   await Storage.ensureDefaultLedger();
+  // 初始化本地通知；若已开启每日提醒则重新登记，防止重启/更新后丢失
+  await NotificationService.init();
+  if (await Storage.getReminderEnabled()) {
+    final minutes = await Storage.getReminderMinutes();
+    await NotificationService.scheduleDailyReminder(
+      minutes ~/ 60,
+      minutes % 60,
+    );
+  }
   runApp(const NishuowojiApp());
 }
 
@@ -17,7 +27,7 @@ class NishuowojiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '你说我记',
+      title: '说记',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,

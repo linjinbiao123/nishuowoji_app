@@ -339,16 +339,38 @@ class Storage {
     await prefs.setString('deleted_categories', list.join(','));
   }
 
-  // 全局背景主题索引（0=深空蓝 1=极光紫 2=翡翠绿）
+  // 全局背景主题索引（0=深空蓝 1=极光紫 2=翡翠绿 3=樱花粉）
   static Future<int> getBgIndex() async {
     final prefs = await SharedPreferences.getInstance();
     final i = prefs.getInt('stats_bg_theme') ?? 0;
-    return i.clamp(0, 2);
+    return i < 0 ? 0 : i; // 上限由各页面的 % AppBgTheme.all.length 兜底
   }
 
   static Future<void> setBgIndex(int i) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('stats_bg_theme', i);
+  }
+
+  /// 每日记账提醒开关（默认关闭）
+  static Future<bool> getReminderEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('reminder_enabled') ?? false;
+  }
+
+  static Future<void> setReminderEnabled(bool on) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminder_enabled', on);
+  }
+
+  /// 提醒时间（从当天零点起的分钟数，默认 20:00 = 1200）
+  static Future<int> getReminderMinutes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('reminder_minutes') ?? 20 * 60;
+  }
+
+  static Future<void> setReminderMinutes(int minutes) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('reminder_minutes', minutes);
   }
 
   static String _encode(Map<String, dynamic> j) {
