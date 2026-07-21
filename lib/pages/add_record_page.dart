@@ -14,6 +14,7 @@ class AddRecordSheet extends StatefulWidget {
 class _AddRecordSheetState extends State<AddRecordSheet> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
+  final _amountFocus = FocusNode();
   String _category = '餐饮';
   bool _isExpense = true;
   String? _deletingCat;
@@ -36,12 +37,17 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
     Storage.getBgIndex().then((i) {
       if (mounted) setState(() => _bgIndex = i);
     });
+    // 等弹窗入场动画结束后再聚焦金额框，避免键盘在动画中弹出引发输入法冲突
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _amountFocus.requestFocus();
+    });
   }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
+    _amountFocus.dispose();
     super.dispose();
   }
 
@@ -85,7 +91,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 12,
             bottom: MediaQuery.of(context).viewInsets.bottom + 16,
@@ -135,6 +141,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                     Expanded(
                       child: TextField(
                         controller: _amountCtrl,
+                        focusNode: _amountFocus,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         style: TextStyle(
                           fontSize: 24, fontWeight: FontWeight.w700,
@@ -147,7 +154,6 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
-                        autofocus: true,
                       ),
                     ),
                   ],
@@ -164,13 +170,16 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                 ),
                 child: TextField(
                   controller: _noteCtrl,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.done,
+                  enableSuggestions: true,
                   style: const TextStyle(fontSize: 15, color: Colors.white),
                   decoration: const InputDecoration(
                     hintText: '备注（可选）',
                     hintStyle: TextStyle(color: AppDark.hint, fontSize: 15),
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),

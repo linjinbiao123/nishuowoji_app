@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自适应图标背景层：对角渐变（左上绿 → 右下蓝），与原图标设计一致 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="315"
+        android:startColor="#A5FFC9"
+        android:centerColor="#2BC6DC"
+        android:endColor="#1579F5" />
+</shape>
