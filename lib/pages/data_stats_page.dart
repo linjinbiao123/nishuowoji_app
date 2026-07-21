@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:html' as html;
+import '../services/export_helper.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
@@ -1110,13 +1110,9 @@ class _DataStatsPageState extends State<DataStatsPage> {
           '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
       buffer.writeln('$ts,$type,$cat,${r.amount.toStringAsFixed(2)},$note');
     }
-    final blob = html.Blob(['\ufeff${buffer.toString()}'], 'text/csv;charset=utf-8');
-    final url = html.Url.createObjectUrlFromBlob(blob);
     final now = DateTime.now();
-    html.AnchorElement(href: url)
-      ..setAttribute('download', 'nishuowoji_${label}_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    final filename = 'nishuowoji_${label}_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+    downloadCsv(buffer.toString(), filename);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已导出「$label」共 ${records.length} 条记录')),
     );
