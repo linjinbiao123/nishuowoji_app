@@ -211,23 +211,61 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       floatingActionButton: _tab == 0
           ? SlideTransition(
               position: _fabSlide,
-              child: FloatingActionButton(
-                heroTag: 'manual',
-                onPressed: () async {
-                  final result = await showModalBottomSheet<bool>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const AddRecordSheet(),
-                  );
-                  if (result == true) {
-                    _loadData();
-                    _statsKey.currentState?.refresh();
-                    _budgetKey.currentState?.refresh();
-                  }
-                },
-                backgroundColor: theme.accent,
-                child: const Icon(Icons.add, color: Colors.white, size: 28),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'manual',
+                    onPressed: () async {
+                      final result = await showModalBottomSheet<bool>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => const AddRecordSheet(),
+                      );
+                      if (result == true) {
+                        _loadData();
+                        _statsKey.currentState?.refresh();
+                        _budgetKey.currentState?.refresh();
+                      }
+                    },
+                    backgroundColor: theme.accent,
+                    child: const Icon(Icons.add, color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  FloatingActionButton(
+                    heroTag: 'voice',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.mic, color: theme.accent, size: 18),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  '语音记账功能开发中，敬请期待',
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: theme.base[1].withOpacity(0.96),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: theme.accent.withOpacity(0.35)),
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    backgroundColor: theme.accent,
+                    child: const Icon(Icons.mic, color: Colors.white, size: 24),
+                  ),
+                ],
               ),
             )
           : null,

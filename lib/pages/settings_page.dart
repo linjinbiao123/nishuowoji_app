@@ -72,6 +72,14 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _toggleReminder(bool on) async {
+    if (on) {
+      // Android 13+ 必须运行时授予通知权限，否则提醒会被系统完全屏蔽
+      final granted = await NotificationService.requestPermission();
+      if (!granted) {
+        _showPermissionDeniedTip();
+        return;
+      }
+    }
     setState(() => _reminderEnabled = on);
     await Storage.setReminderEnabled(on);
     if (on) {
@@ -82,6 +90,37 @@ class SettingsPageState extends State<SettingsPage> {
     } else {
       await NotificationService.cancelDailyReminder();
     }
+  }
+
+  /// 用户拒绝通知权限时的提示（风格与首页 SnackBar 统一）
+  void _showPermissionDeniedTip() {
+    final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.notifications_off, color: theme.accent, size: 18),
+              const SizedBox(width: 8),
+              const Text('未获得通知权限，请前往系统设置开启后重试',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: theme.base[1].withOpacity(0.96),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.accent.withOpacity(0.35)),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _pickReminderTime() async {
