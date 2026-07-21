@@ -1,0 +1,556 @@
+import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_bg.dart';
+import '../services/storage.dart';
+import '../services/categories.dart';
+
+/// 预算管理页（取代原「历史账单」tab）
+/// 月预算：进度圆环 + 已花/剩余，点击编辑
+/// 分类预算：全部支出分类平铺展示，已设预算的带进度条，未设的点击即可设置
+class BudgetPage extends StatefulWidget {
+  const BudgetPage({super.key});
+
+  @override
+  State<BudgetPage> createState() => BudgetPageState();
+}
+
+class BudgetPageState extends State<BudgetPage> {
+  double _monthlyBudget = 0;
+  double _monthExpense = 0;
+  Map<String, double> _categoryBudgets = {};
+  Map<String, double> _catExpenses = {};
+  List<CategoryDef> _cats = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void refresh() => _loadData();
+
+  Future<void> _loadData() async {
+    final records = await Storage.getAll();
+    final budget = await Storage.getMonthlyBudget();
+    final catBudgets = await Storage.getCategoryBudgets();
+    final deleted = await Storage.getDeletedCategories();
+    final custom = await Storage.getCustomCategories();
+    final now = DateTime.now();
+
+    double monthExp = 0;
+    final catExp = <String, double>{};
+    for (final r in records) {
+      if (r.time.year == now.year && r.time.month == now.month && r.isExpense) {
+        monthExp += r.amount;
+        catExp[r.category] = (catExp[r.category] ?? 0) + r.amount;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _monthlyBudget = budget;
+      _monthExpense = monthExp;
+      _categoryBudgets = catBudgets;
+      _catExpenses = catExp;
+      _cats = Categories.activeExpense(deleted, custom);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 顶部标题
+            Row(
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ).createShader(bounds),
+                  child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 8),
+                const Text('预算', style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white,
+                )),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  ),
+                  child: Text('${now.year}年${now.month}月', style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600, color: AppDark.sub,
+                  )),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildMonthlyCard(),
+            const SizedBox(height: 22),
+            _buildCategoryHeader(),
+            const SizedBox(height: 10),
+            _buildCategoryList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------- 月预算 ----------------
+
+  Widget _buildMonthlyCard() {
+    final hasBudget = _monthlyBudget > 0;
+    final percent = hasBudget ? _monthExpense / _monthlyBudget : 0.0;
+    final isOver = percent >= 1.0;
+    final isWarning = percent >= 0.8 && !isOver;
+    final ringColor = isOver
+        ? AppColors.danger
+        : (isWarning ? const Color(0xFFFF9F43) : const Color(0xFF10B981));
+    final remaining = _monthlyBudget - _monthExpense;
+
+    return GestureDetector(
+      onTap: _showMonthlyBudgetDialog,
+      child: GlassCard(
+        radius: 18,
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            // 进度圆环
+            SizedBox(
+              width: 96,
+              height: 96,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CircularProgressIndicator(
+                    value: 1.0,
+                    strokeWidth: 9,
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppDark.track),
+                  ),
+                  if (hasBudget)
+                    CircularProgressIndicator(
+                      value: percent > 1 ? 1.0 : percent,
+                      strokeWidth: 9,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: Colors.transparent,
+                      valueColor: AlwaysStoppedAnimation<Color>(ringColor),
+                    ),
+                  Center(
+                    child: Text(
+                      hasBudget ? '${(percent * 100).toInt()}%' : '--',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: hasBudget ? ringColor : AppDark.hint,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('本月预算', style: TextStyle(fontSize: 13, color: AppDark.sub)),
+                  const SizedBox(height: 6),
+                  Text(
+                    '¥${_monthExpense.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (hasBudget) ...[
+                    Text(
+                      '预算 ¥${_monthlyBudget.toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 12, color: AppDark.sub),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          isOver ? Icons.trending_down : Icons.trending_up,
+                          size: 14,
+                          color: isOver ? AppColors.danger : const Color(0xFF34D399),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            isOver
+                                ? '已超支 ¥${(-remaining).toStringAsFixed(0)}'
+                                : '还可花 ¥${remaining.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: isOver ? AppColors.danger : const Color(0xFF34D399),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else
+                    const Text('未设置 · 点击设置月预算', style: TextStyle(fontSize: 12, color: AppDark.hint)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppDark.hint, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMonthlyBudgetDialog() {
+    final controller = TextEditingController(
+      text: _monthlyBudget > 0 ? _monthlyBudget.toStringAsFixed(0) : '',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppDark.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('设置月预算', style: TextStyle(
+                fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
+              )),
+              const SizedBox(height: 6),
+              const Text('设置每月支出预算，帮助控制消费', style: TextStyle(
+                fontSize: 13, color: AppDark.sub,
+              )),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                decoration: InputDecoration(
+                  prefixText: '¥ ',
+                  hintText: '输入月预算金额',
+                  hintStyle: const TextStyle(color: AppDark.hint),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.08),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(child: Text('取消', style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
+                        ))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final amount = double.tryParse(controller.text.trim()) ?? 0;
+                        await Storage.setMonthlyBudget(amount);
+                        if (mounted) Navigator.pop(ctx);
+                        _loadData();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(child: Text('保存', style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
+                        ))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------- 分类预算（平铺） ----------------
+
+  Widget _buildCategoryHeader() {
+    final setCount = _categoryBudgets.values.where((v) => v > 0).length;
+    return Row(
+      children: [
+        const Text('分类预算', style: TextStyle(
+          fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
+        )),
+        const SizedBox(width: 8),
+        if (setCount > 0)
+          Text('已设 $setCount 个', style: const TextStyle(fontSize: 12, color: AppDark.hint)),
+        const Spacer(),
+        const Text('点击分类设置预算', style: TextStyle(fontSize: 11.5, color: AppDark.hint)),
+      ],
+    );
+  }
+
+  Widget _buildCategoryList() {
+    if (_cats.isEmpty) return const SizedBox.shrink();
+
+    // 已设预算的排前面，其余保持原顺序
+    final sorted = List<CategoryDef>.from(_cats)
+      ..sort((a, b) {
+        final ab = (_categoryBudgets[a.name] ?? 0) > 0;
+        final bb = (_categoryBudgets[b.name] ?? 0) > 0;
+        if (ab != bb) return ab ? -1 : 1;
+        return 0;
+      });
+
+    return GlassCard(
+      radius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Column(
+        children: [
+          for (int i = 0; i < sorted.length; i++) ...[
+            if (i > 0) const Divider(height: 1, color: AppDark.divider),
+            _buildCategoryRow(sorted[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryRow(CategoryDef c) {
+    final name = c.name;
+    final budget = _categoryBudgets[name] ?? 0;
+    final hasBudget = budget > 0;
+    final spent = _catExpenses[name] ?? 0;
+    final percent = hasBudget ? spent / budget : 0.0;
+    final isOver = percent >= 1.0;
+    final isWarning = percent >= 0.8 && !isOver;
+    final barColor = isOver
+        ? AppColors.danger
+        : (isWarning ? const Color(0xFFFF9F43) : c.color);
+
+    return InkWell(
+      onTap: () => _showCatBudgetDialog(c),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: c.color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(c.icon, color: c.color, size: 19),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(name, style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white,
+                          )),
+                          if (isOver) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.danger.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('超支', style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.danger,
+                              )),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasBudget
+                            ? '¥${spent.toStringAsFixed(0)} / ¥${budget.toStringAsFixed(0)}'
+                            : '未设置预算',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isOver ? AppColors.danger : AppDark.sub,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasBudget)
+                  Text(
+                    '${(percent * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isOver
+                          ? AppColors.danger
+                          : (isWarning ? const Color(0xFFFF9F43) : Colors.white),
+                    ),
+                  )
+                else
+                  const Icon(Icons.add_circle_outline, size: 18, color: AppDark.hint),
+              ],
+            ),
+            if (hasBudget) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  height: 6,
+                  child: LinearProgressIndicator(
+                    value: percent > 1 ? 1.0 : percent,
+                    backgroundColor: AppDark.track,
+                    valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCatBudgetDialog(CategoryDef c) {
+    final name = c.name;
+    final current = _categoryBudgets[name] ?? 0;
+    final controller = TextEditingController(
+      text: current > 0 ? current.toStringAsFixed(0) : '',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppDark.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: c.color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(c.icon, size: 19, color: c.color),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('$name · 月预算', style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
+                  )),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                decoration: InputDecoration(
+                  prefixText: '¥ ',
+                  hintText: '输入预算金额，留空则清除',
+                  hintStyle: const TextStyle(color: AppDark.hint),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.08),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(child: Text('取消', style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
+                        ))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final amount = double.tryParse(controller.text.trim()) ?? 0;
+                        final budgets = Map<String, double>.from(_categoryBudgets);
+                        if (amount > 0) {
+                          budgets[name] = amount;
+                        } else {
+                          budgets.remove(name);
+                        }
+                        await Storage.setCategoryBudgets(budgets);
+                        if (mounted) Navigator.pop(ctx);
+                        _loadData();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(child: Text('确定', style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
+                        ))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

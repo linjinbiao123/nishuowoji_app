@@ -1,0 +1,1297 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_bg.dart';
+import '../services/storage.dart';
+import '../services/categories.dart';
+import 'add_record_page.dart';
+import 'stats_page.dart';
+import 'budget_page.dart';
+import 'settings_page.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+  int _tab = 0;
+  List<Record> _records = [];
+  double _monthIncome = 0;
+  double _monthExpense = 0;
+  double _monthBalance = 0;
+  int _todayCount = 0;
+  double _monthlyBudget = 0;
+  Map<String, double> _categoryBudgets = {};
+  Map<String, double> _catExpenses = {};
+  Ledger? _currentLedger;
+  int _bgIndex = 0; // 全局背景主题索引
+
+  // 账本可选颜色
+  static const _ledgerPalette = [
+    0xFF10B981, 0xFF3B82F6, 0xFF8B5CF6, 0xFFEC4899, 0xFFFF9F43,
+    0xFFEF4444, 0xFF06B6D4, 0xFF84CC16, 0xFFF59E0B, 0xFF636E72,
+  ];
+
+  final GlobalKey<StatsPageState> _statsKey = GlobalKey();
+  final GlobalKey<BudgetPageState> _budgetKey = GlobalKey();
+  final GlobalKey<SettingsPageState> _settingsKey = GlobalKey();
+  late final AnimationController _fabAnimCtrl;
+  late final Animation<Offset> _fabSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _fabAnimCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fabSlide = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _fabAnimCtrl, curve: Curves.easeOutCubic));
+    _fabAnimCtrl.forward();
+    _loadData();
+    _loadCustomCategories();
+  }
+
+  @override
+  void dispose() {
+    _fabAnimCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCustomCategories() async {
+    final custom = await Storage.getCustomCategories();
+    setState(() {
+      for (final name in custom) {
+        _categoryIcons[name] = Categories.customIcon;
+        _categoryColors[name] = Categories.customColor;
+      }
+    });
+  }
+
+  Future<void> _loadData() async {
+    final records = await Storage.getAll();
+    final budget = await Storage.getMonthlyBudget();
+    final catBudgets = await Storage.getCategoryBudgets();
+    final ledger = await Storage.getCurrentLedger();
+    final bg = await Storage.getBgIndex();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    double monthInc = 0;
+    double monthExp = 0;
+    int todayCnt = 0;
+    final catExp = <String, double>{};
+
+    for (final r in records) {
+      final recordDate = DateTime(r.time.year, r.time.month, r.time.day);
+      if (recordDate.year == now.year && recordDate.month == now.month) {
+        if (r.isExpense) {
+          monthExp += r.amount;
+          catExp[r.category] = (catExp[r.category] ?? 0) + r.amount;
+        } else {
+          monthInc += r.amount;
+        }
+      }
+      if (recordDate == today) {
+        todayCnt++;
+      }
+    }
+
+    setState(() {
+      _records = records;
+      _monthIncome = monthInc;
+      _monthExpense = monthExp;
+      _monthBalance = monthInc - monthExp;
+      _todayCount = todayCnt;
+      _monthlyBudget = budget;
+      _categoryBudgets = catBudgets;
+      _catExpenses = catExp;
+      _currentLedger = ledger;
+      _bgIndex = bg;
+    });
+  }
+
+  String _formatDate(DateTime date) {
+    final months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    return '${date.year}年${months[date.month - 1]}${date.day}日';
+  }
+
+  final _categoryIcons = {
+    for (final c in Categories.builtinExpense) c.name: c.icon,
+  };
+
+  final _categoryColors = {
+    for (final c in Categories.builtinExpense) c.name: c.color,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayRecords = _records.where((r) {
+      final recordDate = DateTime(r.time.year, r.time.month, r.time.day);
+      final today = DateTime(now.year, now.month, now.day);
+      return recordDate == today;
+    }).toList();
+
+    final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: theme.base[0],
+        body: AppBackground(
+          theme: theme,
+          child: SafeArea(
+            child: IndexedStack(
+              index: _tab,
+              children: [
+                _buildAccountPage(todayRecords),
+                StatsPage(key: _statsKey),
+                BudgetPage(key: _budgetKey),
+                SettingsPage(
+                  key: _settingsKey,
+                  onBgChanged: (i) => setState(() => _bgIndex = i),
+                ),
+              ],
+            ),
+          ),
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+          ),
+          child: BottomNavigationBar(
+            currentIndex: _tab,
+            onTap: (i) {
+              setState(() => _tab = i);
+              // 切换标签时刷新数据，保证设置页改动（自定义分类、预算等）同步到各页
+              _loadData();
+              _loadCustomCategories();
+              _statsKey.currentState?.refresh();
+              _budgetKey.currentState?.refresh();
+              _settingsKey.currentState?.refresh();
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            selectedItemColor: Colors.white,
+            unselectedItemColor: Colors.white.withOpacity(0.45),
+            selectedFontSize: 11,
+            unselectedFontSize: 11,
+            elevation: 0,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.book_outlined),
+                activeIcon: Icon(Icons.book),
+                label: '记账',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart_outlined),
+                activeIcon: Icon(Icons.bar_chart),
+                label: '统计',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet_outlined),
+                activeIcon: Icon(Icons.account_balance_wallet),
+                label: '预算',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined),
+                activeIcon: Icon(Icons.settings),
+                label: '设置',
+              ),
+            ],
+          ),
+        ),
+      floatingActionButton: _tab == 0
+          ? SlideTransition(
+              position: _fabSlide,
+              child: FloatingActionButton(
+                heroTag: 'manual',
+                onPressed: () async {
+                  final result = await showModalBottomSheet<bool>(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const AddRecordSheet(),
+                  );
+                  if (result == true) {
+                    _loadData();
+                    _statsKey.currentState?.refresh();
+                    _budgetKey.currentState?.refresh();
+                  }
+                },
+                backgroundColor: AppColors.success,
+                child: const Icon(Icons.add, color: Colors.white, size: 28),
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      ),
+    );
+  }
+
+  Widget _buildAccountPage(List<Record> todayRecords) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                ).createShader(bounds),
+                child: const Icon(Icons.book, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 8),
+              const Text('记账', style: TextStyle(
+                fontSize: 24, fontWeight: FontWeight.w800,
+                color: Colors.white,
+              )),
+              const Spacer(),
+              _buildLedgerChip(),
+              IconButton(
+                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                onPressed: () {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSummaryCard(),
+          if (_monthlyBudget > 0) ...[
+            const SizedBox(height: 12),
+            _buildBudgetProgress(),
+          ],
+          if (_categoryBudgets.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildCategoryBudgetProgress(),
+          ],
+          const SizedBox(height: 16),
+          _buildTodayRecordsCard(todayRecords),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard() {
+    return GlassCard(
+      radius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          _buildSummaryItem('总收入', _monthIncome, const Color(0xFF34D399), false),
+          _buildDivider(),
+          _buildSummaryItem('总支出', _monthExpense, const Color(0xFFFB7185), true),
+          _buildDivider(),
+          _buildSummaryItem('结余', _monthBalance, Colors.white, false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, double amount, Color amountColor, bool isExpense) {
+    final prefix = isExpense ? '-' : (amount >= 0 ? '+' : '-');
+    return Expanded(
+      child: Column(
+        children: [
+          Text(label, style: const TextStyle(color: AppDark.sub, fontSize: 12)),
+          const SizedBox(height: 8),
+          Text(
+            '$prefix¥${amount.abs().toStringAsFixed(2)}',
+            style: TextStyle(
+              color: amountColor, fontSize: 18, fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(width: 1, height: 40, color: Colors.white.withOpacity(0.12));
+  }
+
+  Widget _buildLedgerChip() {
+    final ledger = _currentLedger;
+    final color = Color(ledger?.color ?? 0xFF10B981);
+    return GestureDetector(
+      onTap: () => _showLedgerManager(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 90),
+              child: Text(
+                ledger?.name ?? '日常账本',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, size: 18, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLedgerManager() async {
+    final ledgers = await Storage.getLedgers();
+    var currentId = await Storage.getCurrentLedgerId();
+    // 每个账本的记录数
+    final counts = <String, int>{};
+    for (final l in ledgers) {
+      counts[l.id] = (await Storage.getForLedger(l.id)).length;
+    }
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppDark.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.72),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('账本管理', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: const Icon(Icons.close, color: AppDark.sub, size: 22),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    '可创建多个账本，工作生活分开记',
+                    style: TextStyle(fontSize: 12, color: AppDark.hint),
+                  ),
+                  const SizedBox(height: 16),
+                  ...ledgers.map((l) {
+                    final color = Color(l.color);
+                    final isCurrent = l.id == currentId;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: isCurrent ? color.withOpacity(0.08) : Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: isCurrent ? color.withOpacity(0.5) : AppDark.divider),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () async {
+                          if (!isCurrent) {
+                            await Storage.setCurrentLedgerId(l.id);
+                            await _refreshAll();
+                          }
+                          if (mounted) Navigator.pop(ctx);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38, height: 38,
+                                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                                child: Icon(Icons.menu_book, size: 19, color: color),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(l.name, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                                    const SizedBox(height: 2),
+                                    Text('${counts[l.id] ?? 0} 笔记录', style: const TextStyle(fontSize: 11.5, color: AppDark.hint)),
+                                  ],
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => _showLedgerEditDialog(
+                                  ledger: l,
+                                  onSaved: () async {
+                                    final newList = await Storage.getLedgers();
+                                    final newCounts = <String, int>{};
+                                    for (final x in newList) {
+                                      newCounts[x.id] = (await Storage.getForLedger(x.id)).length;
+                                    }
+                                    setSheetState(() {
+                                      ledgers
+                                        ..clear()
+                                        ..addAll(newList);
+                                      counts
+                                        ..clear()
+                                        ..addAll(newCounts);
+                                    });
+                                    await _refreshAll();
+                                  },
+                                  onDelete: ledgers.length > 1
+                                      ? () => _confirmDeleteLedger(l, () async {
+                                            await Storage.deleteLedger(l.id);
+                                            final newList = await Storage.getLedgers();
+                                            currentId = await Storage.getCurrentLedgerId();
+                                            setSheetState(() {
+                                              ledgers
+                                                ..clear()
+                                                ..addAll(newList);
+                                              counts.remove(l.id);
+                                            });
+                                            await _refreshAll();
+                                          })
+                                      : null,
+                                ),
+                                child: Container(
+                                  width: 32, height: 32,
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(9), border: Border.all(color: AppDark.divider)),
+                                  child: const Icon(Icons.edit_outlined, size: 15, color: AppDark.sub),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              isCurrent
+                                  ? Icon(Icons.check_circle, size: 22, color: color)
+                                  : const Icon(Icons.radio_button_unchecked, size: 22, color: AppDark.hint),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () async {
+                      _showLedgerEditDialog(
+                        ledger: null,
+                        onSaved: () async {
+                          final newList = await Storage.getLedgers();
+                          setSheetState(() {
+                            ledgers
+                              ..clear()
+                              ..addAll(newList);
+                          });
+                          await _refreshAll();
+                        },
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4), style: BorderStyle.solid),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add, size: 18, color: Color(0xFF10B981)),
+                          SizedBox(width: 6),
+                          Text(
+                            '新建账本',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF10B981)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 刷新首页 + 统计 + 预算 + 设置（切换账本后调用）
+  Future<void> _refreshAll() async {
+    await _loadData();
+    _statsKey.currentState?.refresh();
+    _budgetKey.currentState?.refresh();
+    _settingsKey.currentState?.refresh();
+  }
+
+  void _confirmDeleteLedger(Ledger l, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppDark.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 26),
+              ),
+              const SizedBox(height: 14),
+              Text('删除「${l.name}」', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+              const SizedBox(height: 8),
+              const Text('该账本下的所有记录将一并删除，\n删除后无法恢复！',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppDark.sub, fontSize: 13, height: 1.5)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                        child: const Center(child: Text('取消', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        onConfirm();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(12)),
+                        child: const Center(child: Text('删除', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 创建（ledger=null）或编辑账本
+  void _showLedgerEditDialog({Ledger? ledger, required VoidCallback onSaved, VoidCallback? onDelete}) {
+    final isEdit = ledger != null;
+    final nameCtrl = TextEditingController(text: isEdit ? ledger.name : '');
+    int selectedColor = isEdit ? ledger.color : _ledgerPalette[0];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: AppDark.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(color: Color(selectedColor).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                      child: Icon(Icons.menu_book, size: 19, color: Color(selectedColor)),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(isEdit ? '编辑账本' : '新建账本', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Text('账本名称', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.sub)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameCtrl,
+                  autofocus: !isEdit,
+                  maxLength: 10,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: '如：旅行基金、宝宝账本',
+                    hintStyle: const TextStyle(color: AppDark.hint, fontSize: 14),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.08),
+                    counterText: '',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('账本颜色', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.sub)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _ledgerPalette.map((c) {
+                    final selected = selectedColor == c;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => selectedColor = c),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 34, height: 34,
+                        decoration: BoxDecoration(
+                          color: Color(c),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: selected ? 2.5 : 0),
+                          boxShadow: [
+                            BoxShadow(color: Color(c).withOpacity(selected ? 0.5 : 0.2), blurRadius: selected ? 8 : 3),
+                          ],
+                        ),
+                        child: selected ? const Icon(Icons.check, size: 17, color: Colors.white) : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    if (isEdit && onDelete != null) ...[
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          onDelete();
+                        },
+                        child: Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                          child: const Center(child: Text('取消', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final name = nameCtrl.text.trim();
+                          if (name.isEmpty) return;
+                          if (isEdit) {
+                            await Storage.updateLedger(ledger.copyWith(name: name, color: selectedColor));
+                          } else {
+                            await Storage.addLedger(Ledger(
+                              id: 'ledger_${DateTime.now().millisecondsSinceEpoch}',
+                              name: name,
+                              color: selectedColor,
+                            ));
+                          }
+                          if (mounted) Navigator.pop(ctx);
+                          onSaved();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(child: Text('保存', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBudgetProgress() {
+    final percent = _monthlyBudget > 0 ? _monthExpense / _monthlyBudget : 0.0;
+    final isOver = percent >= 1.0;
+    final isWarning = percent >= 0.8;
+    final barColor = isOver ? AppColors.danger : (isWarning ? const Color(0xFFFF9F43) : const Color(0xFF10B981));
+
+    return GlassCard(
+      radius: 14,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('本月预算', style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white,
+              )),
+              const Spacer(),
+              Text(
+                '¥${_monthExpense.toStringAsFixed(0)} / ¥${_monthlyBudget.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600,
+                  color: isOver ? AppColors.danger : AppDark.sub,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: SizedBox(
+              height: 8,
+              child: LinearProgressIndicator(
+                value: percent > 1 ? 1.0 : percent,
+                backgroundColor: AppDark.track,
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
+              ),
+            ),
+          ),
+          if (isOver) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.warning_amber, size: 14, color: AppColors.danger),
+                const SizedBox(width: 4),
+                Text(
+                  '已超支 ¥${(_monthExpense - _monthlyBudget).toStringAsFixed(0)}，请注意控制消费',
+                  style: const TextStyle(fontSize: 12, color: AppColors.danger, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ] else if (isWarning) ...[
+            const SizedBox(height: 8),
+            Text(
+              '已使用 ${(percent * 100).toStringAsFixed(0)}%，接近预算上限',
+              style: const TextStyle(fontSize: 12, color: Color(0xFFFF9F43), fontWeight: FontWeight.w500),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBudgetProgress() {
+    // 只显示有预算的分类
+    final entries = _categoryBudgets.entries.where((e) => e.value > 0).toList();
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    return GlassCard(
+      radius: 14,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('分类预算', style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white,
+          )),
+          const SizedBox(height: 12),
+          ...entries.map((e) {
+            final name = e.key;
+            final budget = e.value;
+            final spent = _catExpenses[name] ?? 0;
+            final percent = budget > 0 ? spent / budget : 0.0;
+            final isOver = percent >= 1.0;
+            final isWarning = percent >= 0.8;
+            final barColor = isOver
+                ? AppColors.danger
+                : (isWarning ? const Color(0xFFFF9F43) : (_categoryColors[name] ?? const Color(0xFF10B981)));
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(_categoryIcons[name] ?? Icons.label, size: 14,
+                        color: _categoryColors[name] ?? AppColors.textHint),
+                      const SizedBox(width: 5),
+                      Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white)),
+                      const Spacer(),
+                      Text(
+                        '¥${spent.toStringAsFixed(0)} / ¥${budget.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600,
+                          color: isOver ? AppColors.danger : AppDark.sub,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: SizedBox(
+                      height: 6,
+                      child: LinearProgressIndicator(
+                        value: percent > 1 ? 1.0 : percent,
+                        backgroundColor: AppDark.track,
+                        valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                      ),
+                    ),
+                  ),
+                  if (isOver) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '已超支 ¥${(spent - budget).toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 11, color: AppColors.danger, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayRecordsCard(List<Record> todayRecords) {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.today, color: AppColors.accent, size: 20),
+              const SizedBox(width: 8),
+              Text(_formatDate(DateTime.now()), style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white,
+              )),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text('$_todayCount笔', style: const TextStyle(
+                  color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600,
+                )),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (todayRecords.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long, size: 48, color: AppDark.hint),
+                    const SizedBox(height: 12),
+                    const Text('今天还没有记录', style: TextStyle(
+                      color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600,
+                    )),
+                    const SizedBox(height: 4),
+                    Text('点击右下角麦克风按钮语音记账', style: TextStyle(
+                      color: AppDark.hint, fontSize: 12,
+                    )),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: todayRecords.length,
+              separatorBuilder: (_, __) => const Divider(height: 1, color: AppDark.divider),
+              itemBuilder: (context, index) {
+                final r = todayRecords[index];
+                final icon = _categoryIcons[r.category] ?? Icons.receipt;
+                final color = _categoryColors[r.category] ?? AppColors.primary;
+                return InkWell(
+                  onTap: () => _editRecord(r),
+                  child: _buildRecordItem(r, icon, color),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecordItem(Record r, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(r.category, style: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 15, color: Colors.white,
+                )),
+                Text(r.note, style: TextStyle(
+                  color: AppDark.sub, fontSize: 12,
+                )),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                r.isExpense ? '-¥${r.amount.toStringAsFixed(2)}' : '+¥${r.amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: r.isExpense ? AppColors.danger : AppColors.success,
+                  fontWeight: FontWeight.w700, fontSize: 16,
+                ),
+              ),
+              Text(
+                '${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(color: AppDark.hint, fontSize: 11),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteRecord(Record r) async {
+    final records = await Storage.getAll();
+    final index = records.indexWhere((e) => e.time.millisecondsSinceEpoch == r.time.millisecondsSinceEpoch);
+    if (index != -1) {
+      await Storage.remove(index);
+      _loadData();
+      _statsKey.currentState?.refresh();
+      _budgetKey.currentState?.refresh();
+    }
+  }
+
+  void _editRecord(Record r) {
+    final amountController = TextEditingController(text: r.amount.toStringAsFixed(2));
+    final noteController = TextEditingController(text: r.note);
+    String selectedCategory = r.category;
+    bool isExpense = r.isExpense;
+    bool _showAllCategories = false;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppDark.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.10)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('编辑记录', style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                )),
+                const SizedBox(height: 20),
+                // 金额
+                const Text('金额', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(
+                    fontSize: 24, fontWeight: FontWeight.w700,
+                    color: isExpense ? AppColors.danger : AppColors.success,
+                  ),
+                  decoration: InputDecoration(
+                    prefixText: '¥ ',
+                    prefixStyle: TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.w700,
+                      color: isExpense ? AppColors.danger : AppColors.success,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.08),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // 收支类型
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setDialogState(() => isExpense = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isExpense ? AppColors.danger.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: isExpense ? AppColors.danger : AppDark.divider),
+                          ),
+                          child: Text('支出', textAlign: TextAlign.center, style: TextStyle(
+                            color: isExpense ? AppColors.danger : AppDark.sub,
+                            fontWeight: FontWeight.w600,
+                          )),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setDialogState(() => isExpense = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: !isExpense ? AppColors.success.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: !isExpense ? AppColors.success : AppDark.divider),
+                          ),
+                          child: Text('收入', textAlign: TextAlign.center, style: TextStyle(
+                            color: !isExpense ? AppColors.success : AppDark.sub,
+                            fontWeight: FontWeight.w600,
+                          )),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 分类
+                Row(
+                  children: [
+                    const Text('分类', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => setDialogState(() => _showAllCategories = !_showAllCategories),
+                      child: Row(
+                        children: [
+                          Text(_showAllCategories ? '收起' : '更多', style: const TextStyle(
+                            color: AppColors.primary, fontSize: 12,
+                          )),
+                          Icon(_showAllCategories ? Icons.expand_less : Icons.expand_more,
+                            color: AppColors.primary, size: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: [
+                    ...(_showAllCategories
+                        ? _categoryIcons.keys
+                        : _categoryIcons.keys.take(5)).map((cat) {
+                      final selected = cat == selectedCategory;
+                      final color = _categoryColors[cat] ?? AppColors.primary;
+                      final icon = _categoryIcons[cat] ?? Icons.more_horiz;
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => selectedCategory = cat),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: selected ? color.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: selected ? color : AppDark.divider),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(icon, size: 14, color: selected ? color : AppDark.sub),
+                              const SizedBox(width: 4),
+                              Text(cat, style: TextStyle(
+                                color: selected ? color : AppDark.sub,
+                                fontSize: 12, fontWeight: FontWeight.w500,
+                              )),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    // 自定义分类
+                    GestureDetector(
+                      onTap: () => _showCustomCategoryDialog(
+                        setDialogState,
+                        (name) => selectedCategory = name,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppDark.divider, style: BorderStyle.solid),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 14, color: AppDark.sub),
+                            SizedBox(width: 4),
+                            Text('自定义', style: TextStyle(
+                              color: AppDark.sub, fontSize: 12,
+                            )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 备注
+                const Text('备注', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: noteController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: '输入备注',
+                    hintStyle: const TextStyle(color: AppDark.hint),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.08),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // 按钮
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _deleteRecord(r);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.danger,
+                          side: const BorderSide(color: AppColors.danger),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('删除'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final newAmount = double.tryParse(amountController.text);
+                          if (newAmount != null && newAmount > 0) {
+                            _updateRecord(r, newAmount, selectedCategory, noteController.text, isExpense);
+                          }
+                          Navigator.pop(ctx);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('保存', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateRecord(Record oldRecord, double newAmount, String newCategory, String newNote, bool newIsExpense) async {
+    final records = await Storage.getAll();
+    final index = records.indexWhere((e) => e.time.millisecondsSinceEpoch == oldRecord.time.millisecondsSinceEpoch);
+    if (index != -1) {
+      await Storage.remove(index);
+      final newRecord = Record(
+        amount: newAmount,
+        category: newCategory,
+        note: newNote.isEmpty ? newCategory : newNote,
+        time: oldRecord.time,
+        isExpense: newIsExpense,
+      );
+      await Storage.add(newRecord);
+      _loadData();
+      _statsKey.currentState?.refresh();
+      _budgetKey.currentState?.refresh();
+    }
+  }
+
+  void _showCustomCategoryDialog(void Function(void Function()) setDialogState, void Function(String) onSelect) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppDark.surface,
+        title: const Text('自定义分类', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: '输入分类名称',
+            hintStyle: const TextStyle(color: AppDark.hint),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.08),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消', style: TextStyle(color: AppDark.sub)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                _categoryIcons[name] = Categories.customIcon;
+                _categoryColors[name] = Categories.customColor;
+                await Storage.addCustomCategory(name);
+                onSelect(name);
+                setDialogState(() {});
+              }
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('添加', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
