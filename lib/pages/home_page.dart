@@ -4,7 +4,10 @@ import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
+import '../services/vip_service.dart';
+import '../widgets/vip_widgets.dart';
 import 'add_record_page.dart';
+import 'voice_record_dialog.dart';
 import 'stats_page.dart';
 import 'budget_page.dart';
 import 'settings_page.dart';
@@ -28,6 +31,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Map<String, double> _catExpenses = {};
   Ledger? _currentLedger;
   int _bgIndex = 0; // 全局背景主题索引
+  bool _isVip = false; // 是否为有效 VIP（控制预算/多账本等功能）
 
   // 账本可选颜色
   static const _ledgerPalette = [
@@ -79,6 +83,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final catBudgets = await Storage.getCategoryBudgets();
     final ledger = await Storage.getCurrentLedger();
     final bg = await Storage.getBgIndex();
+    final vip = await VipService.isVip();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -113,6 +118,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _catExpenses = catExp;
       _currentLedger = ledger;
       _bgIndex = bg;
+      _isVip = vip;
     });
   }
 
@@ -235,32 +241,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   const SizedBox(width: 16),
                   FloatingActionButton(
                     heroTag: 'voice',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Center(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.mic, color: theme.accent, size: 18),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  '语音记账功能开发中，敬请期待',
-                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: theme.base[1].withOpacity(0.96),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: theme.accent.withOpacity(0.35)),
-                          ),
-                          duration: const Duration(seconds: 2),
-                        ),
+                    onPressed: () async {
+                      final result = await showModalBottomSheet<bool>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => const VoiceRecordSheet(),
                       );
+                      if (result == true) {
+                        _loadData();
+                        _statsKey.currentState?.refresh();
+                        _budgetKey.currentState?.refresh();
+                      }
                     },
                     backgroundColor: theme.accent,
                     child: const Icon(Icons.mic, color: Colors.white, size: 24),
@@ -307,7 +299,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             const SizedBox(height: 12),
             _buildBudgetProgress(),
           ],
-          if (_categoryBudgets.isNotEmpty) ...[
+          if (_isVip && _categoryBudgets.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildCategoryBudgetProgress(),
           ],
@@ -524,6 +516,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   const SizedBox(height: 6),
                   GestureDetector(
                     onTap: () async {
+                      if (!await VipService.isVip()) {
+                        await showVipActivateSheet(context, feature: '多账本');
+                        return;
+                      }
                       _showLedgerEditDialog(
                         ledger: null,
                         onSaved: () async {
@@ -776,6 +772,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final isOver = percent >= 1.0;
     final isWarning = percent >= 0.8;
     final barColor = isOver ? AppColors.danger : (isWarning ? const Color(0xFFFF9F43) : const Color(0xFF10B981));
+    final remaining = _monthlyBudget - _monthExpense;
+    final now = DateTime.now();
+    final daysLeft = DateTime(now.year, now.month + 1, 0).day - now.day + 1;
+    final dailyAllowance = remaining > 0 ? remaining / daysLeft : 0.0;
 
     return GlassCard(
       radius: 14,
@@ -822,12 +822,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ],
             ),
-          ] else if (isWarning) ...[
+          ] else ...[
             const SizedBox(height: 8),
-            Text(
-              '已使用 ${(percent * 100).toStringAsFixed(0)}%，接近预算上限',
-              style: const TextStyle(fontSize: 12, color: Color(0xFFFF9F43), fontWeight: FontWeight.w500),
+            Row(
+              children: [
+                Icon(Icons.today, size: 14,
+                    color: isWarning ? const Color(0xFFFF9F43) : const Color(0xFF34D399)),
+                const SizedBox(width: 4),
+                Text(
+                  '今日可花 ¥${dailyAllowance.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600,
+                    color: isWarning ? const Color(0xFFFF9F43) : const Color(0xFF34D399),
+                  ),
+                ),
+              ],
             ),
+            if (isWarning) ...[
+              const SizedBox(height: 4),
+              Text(
+                '已使用 ${(percent * 100).toStringAsFixed(0)}%，接近预算上限',
+                style: const TextStyle(fontSize: 12, color: Color(0xFFFF9F43), fontWeight: FontWeight.w500),
+              ),
+            ],
           ],
         ],
       ),
@@ -1091,7 +1108,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setDialogState(() => isExpense = true),
+                        onTap: () => setDialogState(() {
+                          isExpense = true;
+                          selectedCategory = Categories.builtinExpense.first.name;
+                        }),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -1109,7 +1129,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setDialogState(() => isExpense = false),
+                        onTap: () => setDialogState(() {
+                          isExpense = false;
+                          selectedCategory = Categories.builtinIncome.first.name;
+                        }),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -1150,14 +1173,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 Wrap(
                   spacing: 8, runSpacing: 8,
                   children: [
-                    ...(_showAllCategories
-                        ? _categoryIcons.keys
-                        : _categoryIcons.keys.take(5)).map((cat) {
-                      final selected = cat == selectedCategory;
-                      final color = _categoryColors[cat] ?? AppColors.primary;
-                      final icon = _categoryIcons[cat] ?? Icons.more_horiz;
+                    ...(isExpense
+                        ? (_showAllCategories ? Categories.builtinExpense : Categories.builtinExpense.take(5))
+                        : (_showAllCategories ? Categories.builtinIncome : Categories.builtinIncome.take(5))
+                    ).map((c) {
+                      final selected = c.name == selectedCategory;
+                      final color = c.color;
+                      final icon = c.icon;
                       return GestureDetector(
-                        onTap: () => setDialogState(() => selectedCategory = cat),
+                        onTap: () => setDialogState(() => selectedCategory = c.name),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
@@ -1170,7 +1194,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             children: [
                               Icon(icon, size: 14, color: selected ? color : AppDark.sub),
                               const SizedBox(width: 4),
-                              Text(cat, style: TextStyle(
+                              Text(c.name, style: TextStyle(
                                 color: selected ? color : AppDark.sub,
                                 fontSize: 12, fontWeight: FontWeight.w500,
                               )),

@@ -3,10 +3,12 @@ import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
+import '../services/vip_service.dart';
+import '../widgets/vip_widgets.dart';
 
 /// 预算管理页（取代原「历史账单」tab）
-/// 月预算：进度圆环 + 已花/剩余，点击编辑
-/// 分类预算：全部支出分类平铺展示，已设预算的带进度条，未设的点击即可设置
+/// 月预算：进度圆环 + 已花/剩余，点击编辑（所有用户可用）
+/// 分类预算：全部支出分类平铺展示（权限功能，未开通显示锁定入口）
 class BudgetPage extends StatefulWidget {
   const BudgetPage({super.key});
 
@@ -20,6 +22,7 @@ class BudgetPageState extends State<BudgetPage> {
   Map<String, double> _categoryBudgets = {};
   Map<String, double> _catExpenses = {};
   List<CategoryDef> _cats = [];
+  bool _isVip = false;
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class BudgetPageState extends State<BudgetPage> {
     final catBudgets = await Storage.getCategoryBudgets();
     final deleted = await Storage.getDeletedCategories();
     final custom = await Storage.getCustomCategories();
+    final isVip = await VipService.isVip();
     final now = DateTime.now();
 
     double monthExp = 0;
@@ -53,6 +57,7 @@ class BudgetPageState extends State<BudgetPage> {
       _categoryBudgets = catBudgets;
       _catExpenses = catExp;
       _cats = Categories.activeExpense(deleted, custom);
+      _isVip = isVip;
     });
   }
 
@@ -96,11 +101,57 @@ class BudgetPageState extends State<BudgetPage> {
             const SizedBox(height: 16),
             _buildMonthlyCard(),
             const SizedBox(height: 22),
-            _buildCategoryHeader(),
-            const SizedBox(height: 10),
-            _buildCategoryList(),
+            if (_isVip) ...[
+              _buildCategoryHeader(),
+              const SizedBox(height: 10),
+              _buildCategoryList(),
+            ] else
+              _buildCategoryLocked(),
           ],
         ),
+      ),
+    );
+  }
+
+  // ---------------- 分类预算锁定（未开通权限） ----------------
+
+  Widget _buildCategoryLocked() {
+    return GlassCard(
+      radius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+      child: Column(
+        children: [
+          Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.lock_outline, size: 30, color: Color(0xFF10B981)),
+          ),
+          const SizedBox(height: 16),
+          const Text('分类预算', style: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+          const SizedBox(height: 6),
+          const Text('按分类精细控制预算，开通权限即可使用',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12.5, color: AppDark.sub)),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final ok = await showVipActivateSheet(context, feature: '分类预算');
+              if (ok) _loadData();
+            },
+            icon: const Icon(Icons.workspace_premium, size: 18, color: Colors.white),
+            label: const Text('开通权限', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -108,6 +159,7 @@ class BudgetPageState extends State<BudgetPage> {
   // ---------------- 月预算 ----------------
 
   Widget _buildMonthlyCard() {
+    final now = DateTime.now();
     final hasBudget = _monthlyBudget > 0;
     final percent = hasBudget ? _monthExpense / _monthlyBudget : 0.0;
     final isOver = percent >= 1.0;
@@ -116,6 +168,8 @@ class BudgetPageState extends State<BudgetPage> {
         ? AppColors.danger
         : (isWarning ? const Color(0xFFFF9F43) : const Color(0xFF10B981));
     final remaining = _monthlyBudget - _monthExpense;
+    final daysLeft = DateTime(now.year, now.month + 1, 0).day - now.day + 1;
+    final dailyAllowance = remaining > 0 ? remaining / daysLeft : 0.0;
 
     return GestureDetector(
       onTap: _showMonthlyBudgetDialog,
@@ -200,6 +254,23 @@ class BudgetPageState extends State<BudgetPage> {
                         ),
                       ],
                     ),
+                    if (!isOver) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.today, size: 14, color: AppDark.sub),
+                          const SizedBox(width: 4),
+                          Text(
+                            '今日可花 ¥${dailyAllowance.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppDark.sub,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ] else
                     const Text('未设置 · 点击设置月预算', style: TextStyle(fontSize: 12, color: AppDark.hint)),
                 ],

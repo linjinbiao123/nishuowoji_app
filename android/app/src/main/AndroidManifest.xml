@@ -6,6 +6,10 @@
     <!-- 精确闹钟：保证提醒在设定时刻准时触发 -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <!-- 语音记账：麦克风录音（运行时还会动态申请） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 语音记账：调用云端语音识别接口（仅此功能联网，其余功能完全离线） -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="说记"
         android:name="${applicationName}"

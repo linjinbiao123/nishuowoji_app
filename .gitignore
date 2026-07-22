@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# VIP 发卡私钥（绝密，绝不能提交）
+tool/vip_private_key.txt
+
+# Android release 签名（绝密，绝不能提交）
+android/key.properties
+android/app/release.keystore
+*.keystore
+*.jks

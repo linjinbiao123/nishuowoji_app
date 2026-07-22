@@ -15,6 +15,9 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   final _amountFocus = FocusNode();
+  final _noteFocus = FocusNode();
+  /// 标记当前键盘是否处于"数字"状态（金额框聚焦），用于切到备注时强制刷新输入法
+  bool _keyboardIsNumeric = false;
   String _category = '餐饮';
   bool _isExpense = true;
   String? _deletingCat;
@@ -37,6 +40,10 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
     Storage.getBgIndex().then((i) {
       if (mounted) setState(() => _bgIndex = i);
     });
+    // 金额框聚焦 => 键盘处于数字模式
+    _amountFocus.addListener(() {
+      if (_amountFocus.hasFocus) _keyboardIsNumeric = true;
+    });
     // 等弹窗入场动画结束后再聚焦金额框，避免键盘在动画中弹出引发输入法冲突
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) _amountFocus.requestFocus();
@@ -48,6 +55,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
     _amountFocus.dispose();
+    _noteFocus.dispose();
     super.dispose();
   }
 
@@ -170,9 +178,21 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                 ),
                 child: TextField(
                   controller: _noteCtrl,
+                  focusNode: _noteFocus,
                   keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.done,
                   enableSuggestions: true,
+                  // Android 上从数字键盘直接切到文字键盘时 IME 不会自动刷新，
+                  // 需要先断开再重连焦点，强制系统以文字模式重新打开输入法
+                  onTap: () {
+                    if (_keyboardIsNumeric) {
+                      _keyboardIsNumeric = false;
+                      _noteFocus.unfocus();
+                      Future.delayed(const Duration(milliseconds: 80), () {
+                        if (mounted) _noteFocus.requestFocus();
+                      });
+                    }
+                  },
                   style: const TextStyle(fontSize: 15, color: Colors.white),
                   decoration: const InputDecoration(
                     hintText: '备注（可选）',

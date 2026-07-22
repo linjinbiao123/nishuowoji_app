@@ -5,6 +5,8 @@ import '../services/export_helper.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
+import '../services/vip_service.dart';
+import '../widgets/vip_widgets.dart';
 
 class _Bar {
   final String label;
@@ -976,7 +978,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
         ),
         const SizedBox(height: 12),
         GestureDetector(
-          onTap: _showExportPicker,
+          onTap: _onExportTap,
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
@@ -1009,6 +1011,15 @@ class _DataStatsPageState extends State<DataStatsPage> {
         ),
       ],
     );
+  }
+
+  /// 导出入口：数据导出为 VIP 功能，非 VIP 先引导激活
+  Future<void> _onExportTap() async {
+    if (!await VipService.isVip()) {
+      await showVipActivateSheet(context, feature: '数据导出');
+      return;
+    }
+    _showExportPicker();
   }
 
   /// 选择要导出的账本（单个或全部）

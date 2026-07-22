@@ -4,6 +4,10 @@ import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
 import '../services/notification_service.dart';
+import '../services/vip_service.dart';
+import '../widgets/vip_widgets.dart';
+import '../services/update_service.dart';
+import 'agreement_page.dart';
 import 'data_stats_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -22,6 +26,8 @@ class SettingsPageState extends State<SettingsPage> {
   int _bgIndex = 0;
   bool _reminderEnabled = false;
   int _reminderMinutes = 20 * 60;
+  bool _isVip = false;
+  String _vipExpiry = '';
 
   @override
   void initState() {
@@ -37,6 +43,8 @@ class SettingsPageState extends State<SettingsPage> {
     final bgIndex = await Storage.getBgIndex();
     final reminderEnabled = await Storage.getReminderEnabled();
     final reminderMinutes = await Storage.getReminderMinutes();
+    final isVip = await VipService.isVip();
+    final vipExpiry = await VipService.vipExpiryText();
 
     // 有效分类总数 = 内置支出 + 内置收入 + 自定义，排除已删除（与记账页完全一致）
     int total = 0;
@@ -57,11 +65,72 @@ class SettingsPageState extends State<SettingsPage> {
       _bgIndex = bgIndex;
       _reminderEnabled = reminderEnabled;
       _reminderMinutes = reminderMinutes;
+      _isVip = isVip;
+      _vipExpiry = vipExpiry ?? '';
     });
   }
 
   /// 供父页面通过 GlobalKey 调用（切换账本/数据变更后刷新）
   void refresh() => _loadInfo();
+
+  // ---------------- 检查更新 ----------------
+
+  Future<void> _checkUpdate() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('正在检查更新…'), duration: Duration(seconds: 1)),
+    );
+    final info = await UpdateService.check();
+    if (!mounted) return;
+
+    if (info == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('检查失败，请确认网络连接')),
+      );
+      return;
+    }
+    if (!info.hasUpdate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已是最新版本')),
+      );
+      return;
+    }
+    // 有新版本 → 弹窗提示
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppDark.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('发现新版本 v${info.version}',
+            style: const TextStyle(color: Colors.white, fontSize: 17)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (info.note.isNotEmpty)
+              Text(info.note,
+                  style: TextStyle(color: AppDark.sub, fontSize: 14, height: 1.5)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('稍后再说', style: TextStyle(color: AppDark.sub)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              UpdateService.openDownload(info.url);
+            },
+            child: const Text('去下载', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ---------------- 每日记账提醒 ----------------
 
@@ -369,6 +438,9 @@ class SettingsPageState extends State<SettingsPage> {
                 color: Colors.white,
               )),
               const SizedBox(height: 20),
+              // 权限
+              _buildVipSection(),
+              const SizedBox(height: 20),
               // 外观
               _buildSectionTitle('外观'),
               const SizedBox(height: 10),
@@ -443,11 +515,63 @@ class SettingsPageState extends State<SettingsPage> {
                   subtitle: '版本 1.0.0',
                   onTap: null,
                 ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+                _buildSettingItem(
+                  icon: Icons.system_update_alt,
+                  iconColor: const Color(0xFF10B981),
+                  title: '检查更新',
+                  subtitle: '检查是否有新版本',
+                  onTap: _checkUpdate,
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+                _buildSettingItem(
+                  icon: Icons.privacy_tip_outlined,
+                  iconColor: AppColors.textSecondary,
+                  title: '隐私政策',
+                  subtitle: '了解我们如何保护您的数据',
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AgreementPage(isPrivacy: true))),
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+                _buildSettingItem(
+                  icon: Icons.description_outlined,
+                  iconColor: AppColors.textSecondary,
+                  title: '用户服务协议',
+                  subtitle: '使用条款与免责声明',
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AgreementPage(isPrivacy: false))),
+                ),
               ]),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildVipSection() {
+    final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
+    final vipSubtitle = _isVip
+        ? (_vipExpiry == '永久有效' ? '永久有效' : '有效期至 $_vipExpiry')
+        : '解锁多账本、数据导出、分类预算';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('权限'),
+        const SizedBox(height: 10),
+        _buildCard([
+          _buildSettingItem(
+            icon: Icons.workspace_premium,
+            iconColor: _isVip ? const Color(0xFFFFD700) : theme.accent,
+            title: _isVip ? '已开通权限' : '开通权限',
+            subtitle: vipSubtitle,
+            onTap: () async {
+              final ok = await showVipActivateSheet(context);
+              if (ok) _loadInfo();
+            },
+          ),
+        ]),
+      ],
     );
   }
 
