@@ -19,10 +19,12 @@ class BudgetPage extends StatefulWidget {
 class BudgetPageState extends State<BudgetPage> {
   double _monthlyBudget = 0;
   double _monthExpense = 0;
+  double _todayExpense = 0;
   Map<String, double> _categoryBudgets = {};
   Map<String, double> _catExpenses = {};
   List<CategoryDef> _cats = [];
   bool _isVip = false;
+  int _budgetStartDay = 1;
 
   @override
   void initState() {
@@ -32,6 +34,19 @@ class BudgetPageState extends State<BudgetPage> {
 
   void refresh() => _loadData();
 
+  /// 根据起始日计算当前预算周期的起止日期
+  (DateTime, DateTime) _budgetPeriod() {
+    final now = DateTime.now();
+    DateTime start;
+    if (now.day >= _budgetStartDay) {
+      start = DateTime(now.year, now.month, _budgetStartDay);
+    } else {
+      start = DateTime(now.year, now.month - 1, _budgetStartDay);
+    }
+    final end = DateTime(start.year, start.month + 1, _budgetStartDay - 1);
+    return (start, end);
+  }
+
   Future<void> _loadData() async {
     final records = await Storage.getAll();
     final budget = await Storage.getMonthlyBudget();
@@ -39,14 +54,22 @@ class BudgetPageState extends State<BudgetPage> {
     final deleted = await Storage.getDeletedCategories();
     final custom = await Storage.getCustomCategories();
     final isVip = await VipService.isVip();
-    final now = DateTime.now();
+    final startDay = await Storage.getBudgetStartDay();
+
+    final (periodStart, periodEnd) = _budgetPeriodWith(startDay);
 
     double monthExp = 0;
+    double todayExp = 0;
     final catExp = <String, double>{};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     for (final r in records) {
-      if (r.time.year == now.year && r.time.month == now.month && r.isExpense) {
+      if (r.isExpense && !r.time.isBefore(periodStart) && !r.time.isAfter(periodEnd)) {
         monthExp += r.amount;
         catExp[r.category] = (catExp[r.category] ?? 0) + r.amount;
+      }
+      if (r.isExpense && r.time.year == today.year && r.time.month == today.month && r.time.day == today.day) {
+        todayExp += r.amount;
       }
     }
 
@@ -54,11 +77,26 @@ class BudgetPageState extends State<BudgetPage> {
     setState(() {
       _monthlyBudget = budget;
       _monthExpense = monthExp;
+      _todayExpense = todayExp;
       _categoryBudgets = catBudgets;
       _catExpenses = catExp;
       _cats = Categories.activeExpense(deleted, custom);
       _isVip = isVip;
+      _budgetStartDay = startDay;
     });
+  }
+
+  /// 静态版本：用给定的 startDay 计算周期（供 _loadData 在 setState 前使用）
+  (DateTime, DateTime) _budgetPeriodWith(int startDay) {
+    final now = DateTime.now();
+    DateTime start;
+    if (now.day >= startDay) {
+      start = DateTime(now.year, now.month, startDay);
+    } else {
+      start = DateTime(now.year, now.month - 1, startDay);
+    }
+    final end = DateTime(start.year, start.month + 1, startDay - 1);
+    return (start, end);
   }
 
   @override
@@ -168,8 +206,10 @@ class BudgetPageState extends State<BudgetPage> {
         ? AppColors.danger
         : (isWarning ? const Color(0xFFFF9F43) : const Color(0xFF10B981));
     final remaining = _monthlyBudget - _monthExpense;
-    final daysLeft = DateTime(now.year, now.month + 1, 0).day - now.day + 1;
-    final dailyAllowance = remaining > 0 ? remaining / daysLeft : 0.0;
+    final (_, periodEnd) = _budgetPeriod();
+    final daysLeft = periodEnd.difference(now).inDays + 1;
+    final rawAllowance = (remaining > 0 && daysLeft > 0) ? remaining / daysLeft : 0.0;
+    final dailyAllowance = (rawAllowance - _todayExpense).clamp(0.0, double.infinity);
 
     return GestureDetector(
       onTap: _showMonthlyBudgetDialog,
@@ -268,6 +308,13 @@ class BudgetPageState extends State<BudgetPage> {
                               color: AppDark.sub,
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.calendar_view_week, size: 14, color: AppDark.hint),
+                          const SizedBox(width: 4),
+                          Text(
+                            '平均每日 ¥${rawAllowance.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.hint),
+                          ),
                         ],
                       ),
                     ],
@@ -287,84 +334,122 @@ class BudgetPageState extends State<BudgetPage> {
     final controller = TextEditingController(
       text: _monthlyBudget > 0 ? _monthlyBudget.toStringAsFixed(0) : '',
     );
+    int selectedDay = _budgetStartDay;
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: AppDark.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('设置月预算', style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
-              )),
-              const SizedBox(height: 6),
-              const Text('设置每月支出预算，帮助控制消费', style: TextStyle(
-                fontSize: 13, color: AppDark.sub,
-              )),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
-                decoration: InputDecoration(
-                  prefixText: '¥ ',
-                  hintText: '输入月预算金额',
-                  hintStyle: const TextStyle(color: AppDark.hint),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: AppDark.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('设置月预算', style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
+                )),
+                const SizedBox(height: 6),
+                const Text('设置每月支出预算，帮助控制消费', style: TextStyle(
+                  fontSize: 13, color: AppDark.sub,
+                )),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                  decoration: InputDecoration(
+                    prefixText: '¥ ',
+                    hintText: '输入月预算金额',
+                    hintStyle: const TextStyle(color: AppDark.hint),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
+                  autofocus: true,
                 ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                // 预算周期起始日
+                Row(
+                  children: [
+                    const Text('起始日', style: TextStyle(fontSize: 14, color: AppDark.sub)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: selectedDay,
+                          dropdownColor: AppDark.surface,
+                          style: const TextStyle(fontSize: 14, color: Colors.white),
+                          icon: const Icon(Icons.arrow_drop_down, color: AppDark.sub, size: 20),
+                          items: List.generate(28, (i) => i + 1)
+                              .map((d) => DropdownMenuItem(value: d, child: Text('每月${d}号')))
+                              .toList(),
+                          onChanged: (v) => setDialogState(() => selectedDay = v ?? 1),
                         ),
-                        child: const Center(child: Text('取消', style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
-                        ))),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final amount = double.tryParse(controller.text.trim()) ?? 0;
-                        await Storage.setMonthlyBudget(amount);
-                        if (mounted) Navigator.pop(ctx);
-                        _loadData();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
-                          borderRadius: BorderRadius.circular(12),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  selectedDay == 1
+                      ? '周期：每月1号 ~ 月末'
+                      : '周期：每月${selectedDay}号 ~ 次月${selectedDay - 1}号',
+                  style: const TextStyle(fontSize: 11.5, color: AppDark.hint),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(child: Text('取消', style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
+                          ))),
                         ),
-                        child: const Center(child: Text('保存', style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
-                        ))),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final amount = double.tryParse(controller.text.trim()) ?? 0;
+                          await Storage.setMonthlyBudget(amount);
+                          await Storage.setBudgetStartDay(selectedDay);
+                          if (mounted) Navigator.pop(ctx);
+                          _loadData();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(child: Text('保存', style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
+                          ))),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

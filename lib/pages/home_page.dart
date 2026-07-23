@@ -31,6 +31,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Map<String, double> _catExpenses = {};
   Ledger? _currentLedger;
   int _bgIndex = 0; // 全局背景主题索引
+  int _budgetStartDay = 1;
   bool _isVip = false; // 是否为有效 VIP（控制预算/多账本等功能）
 
   // 账本可选颜色
@@ -84,6 +85,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final ledger = await Storage.getCurrentLedger();
     final bg = await Storage.getBgIndex();
     final vip = await VipService.isVip();
+    final budgetStartDay = await Storage.getBudgetStartDay();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -119,6 +121,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _currentLedger = ledger;
       _bgIndex = bg;
       _isVip = vip;
+      _budgetStartDay = budgetStartDay;
     });
   }
 
@@ -768,14 +771,37 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildBudgetProgress() {
-    final percent = _monthlyBudget > 0 ? _monthExpense / _monthlyBudget : 0.0;
+    final now = DateTime.now();
+    // 用预算周期计算支出（可能与自然月不同）
+    final startDay = _budgetStartDay;
+    DateTime periodStart;
+    if (now.day >= startDay) {
+      periodStart = DateTime(now.year, now.month, startDay);
+    } else {
+      periodStart = DateTime(now.year, now.month - 1, startDay);
+    }
+    final periodEnd = DateTime(periodStart.year, periodStart.month + 1, startDay - 1);
+    double budgetExp = 0;
+    for (final r in _records) {
+      if (r.isExpense && !r.time.isBefore(periodStart) && !r.time.isAfter(periodEnd)) {
+        budgetExp += r.amount;
+      }
+    }
+    final percent = _monthlyBudget > 0 ? budgetExp / _monthlyBudget : 0.0;
     final isOver = percent >= 1.0;
     final isWarning = percent >= 0.8;
     final barColor = isOver ? AppColors.danger : (isWarning ? const Color(0xFFFF9F43) : const Color(0xFF10B981));
-    final remaining = _monthlyBudget - _monthExpense;
-    final now = DateTime.now();
-    final daysLeft = DateTime(now.year, now.month + 1, 0).day - now.day + 1;
-    final dailyAllowance = remaining > 0 ? remaining / daysLeft : 0.0;
+    final remaining = _monthlyBudget - budgetExp;
+    final daysLeft = periodEnd.difference(now).inDays + 1;
+    final rawAllowance = (remaining > 0 && daysLeft > 0) ? remaining / daysLeft : 0.0;
+    // 扣掉今天已花的
+    double todayExp = 0;
+    for (final r in _records) {
+      if (r.isExpense && r.time.year == now.year && r.time.month == now.month && r.time.day == now.day) {
+        todayExp += r.amount;
+      }
+    }
+    final dailyAllowance = (rawAllowance - todayExp).clamp(0.0, double.infinity);
 
     return GlassCard(
       radius: 14,
@@ -790,7 +816,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               )),
               const Spacer(),
               Text(
-                '¥${_monthExpense.toStringAsFixed(0)} / ¥${_monthlyBudget.toStringAsFixed(0)}',
+                '¥${budgetExp.toStringAsFixed(0)} / ¥${_monthlyBudget.toStringAsFixed(0)}',
                 style: TextStyle(
                   fontSize: 12, fontWeight: FontWeight.w600,
                   color: isOver ? AppColors.danger : AppDark.sub,
@@ -817,7 +843,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 const Icon(Icons.warning_amber, size: 14, color: AppColors.danger),
                 const SizedBox(width: 4),
                 Text(
-                  '已超支 ¥${(_monthExpense - _monthlyBudget).toStringAsFixed(0)}，请注意控制消费',
+                  '已超支 ¥${(budgetExp - _monthlyBudget).toStringAsFixed(0)}，请注意控制消费',
                   style: const TextStyle(fontSize: 12, color: AppColors.danger, fontWeight: FontWeight.w500),
                 ),
               ],
@@ -835,6 +861,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     fontSize: 12, fontWeight: FontWeight.w600,
                     color: isWarning ? const Color(0xFFFF9F43) : const Color(0xFF34D399),
                   ),
+                ),
+                const SizedBox(width: 12),
+                Icon(Icons.calendar_view_week, size: 14, color: AppDark.sub),
+                const SizedBox(width: 4),
+                Text(
+                  '平均每日 ¥${rawAllowance.toStringAsFixed(0)}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppDark.sub),
                 ),
               ],
             ),

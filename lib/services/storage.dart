@@ -292,6 +292,19 @@ class Storage {
     await prefs.setDouble('monthly_budget_$ledgerId', amount);
   }
 
+  /// 预算周期起始日（1~28，默认1即每月1号起）
+  static Future<int> getBudgetStartDay() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ledgerId = await getCurrentLedgerId();
+    return prefs.getInt('budget_start_day_$ledgerId') ?? 1;
+  }
+
+  static Future<void> setBudgetStartDay(int day) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ledgerId = await getCurrentLedgerId();
+    await prefs.setInt('budget_start_day_$ledgerId', day.clamp(1, 28));
+  }
+
   /// 分类预算（当前账本，格式: "分类名=金额,分类名=金额"）
   static Future<Map<String, double>> getCategoryBudgets() async {
     final prefs = await SharedPreferences.getInstance();

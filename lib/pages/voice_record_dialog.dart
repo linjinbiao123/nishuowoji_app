@@ -153,16 +153,107 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
   // ---------------- 解析 ----------------
 
   void _parse(String text) {
-    final num = RegExp(r'\d+\.?\d*').firstMatch(text)?.group(0);
+    final amount = _extractAmount(text);
     final category = _matchCategory(text);
     final isExpense = !_isIncome(text);
+    final hasCategory = category != '其他';
+
+    // 金额和分类都识别到 → 直接自动保存，不用动手
+    if (amount != null && amount > 0 && hasCategory) {
+      _autoSave(amount, category, isExpense, text);
+      return;
+    }
+
+    // 否则进入手动确认界面
     setState(() {
       _text = text;
       _stage = _Stage.result;
       _category = category;
       _isExpense = isExpense;
-      _amountCtrl.text = num ?? '';
+      _amountCtrl.text = amount != null && amount > 0
+          ? (amount == amount.roundToDouble() ? amount.toInt().toString() : amount.toString())
+          : '';
     });
+  }
+
+  /// 自动保存并关闭弹窗
+  Future<void> _autoSave(double amount, String category, bool isExpense, String text) async {
+    await Storage.add(Record(
+      amount: amount,
+      category: category,
+      note: text,
+      time: DateTime.now(),
+      isExpense: isExpense,
+    ));
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+
+  /// 从文本中提取金额：先试阿拉伯数字，再试中文数字
+  double? _extractAmount(String text) {
+    // 1. 阿拉伯数字
+    final m = RegExp(r'\d+\.?\d*').firstMatch(text);
+    if (m != null) {
+      final v = double.tryParse(m.group(0)!);
+      if (v != null && v > 0) return v;
+    }
+    // 2. 中文数字（如"二十五""一百三""三千五""两块五"）
+    return _chineseToNum(text);
+  }
+
+  /// 中文数字转阿拉伯数字，支持常见口语表达
+  double? _chineseToNum(String text) {
+    const digits = {'零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+    const units = {'十':10,'百':100,'千':1000,'万':10000,'亿':100000000};
+
+    // 提取中文数字片段（连续的数字字符）
+    final cnChars = RegExp(r'[零一二两三四五六七八九十百千万亿]+');
+    final matches = cnChars.allMatches(text);
+    for (final match in matches) {
+      final s = match.group(0)!;
+      if (s.isEmpty) continue;
+      final result = _parseCnNum(s, digits, units);
+      if (result != null && result > 0) return result;
+    }
+    return null;
+  }
+
+  double? _parseCnNum(String s, Map<String,int> digits, Map<String,int> units) {
+    double total = 0;
+    double current = 0;
+    double lastUnit = 1;
+
+    for (int i = 0; i < s.length; i++) {
+      final ch = s[i];
+      if (digits.containsKey(ch)) {
+        current = digits[ch]!.toDouble();
+      } else if (units.containsKey(ch)) {
+        final unit = units[ch]!.toDouble();
+        if (current == 0 && unit == 10) {
+          // "十五" → 1*10+5, 十前面没有数字默认1
+          current = 1;
+        }
+        if (unit >= 10000) {
+          // 万/亿：把之前累积的乘以万
+          total = (total + current * lastUnit) * unit;
+          current = 0;
+          lastUnit = 1;
+        } else {
+          total += current * unit;
+          lastUnit = unit;
+          current = 0;
+        }
+      }
+    }
+    // 处理尾部：如"一百三"的"三"= 3*10(上一级单位的1/10)
+    if (current > 0) {
+      if (lastUnit >= 10) {
+        total += current * (lastUnit / 10);
+      } else {
+        total += current;
+      }
+    }
+    return total > 0 ? total : null;
   }
 
   String _matchCategory(String text) {
