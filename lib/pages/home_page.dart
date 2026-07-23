@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:record/record.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
 import '../services/vip_service.dart';
+import '../services/asr_service.dart';
+import '../services/voice_parser.dart';
 import '../widgets/vip_widgets.dart';
 import 'add_record_page.dart';
 import 'voice_record_dialog.dart';
@@ -33,6 +37,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   int _bgIndex = 0; // 全局背景主题索引
   int _budgetStartDay = 1;
   bool _isVip = false; // 是否为有效 VIP（控制预算/多账本等功能）
+
+  // 长按麦克风直接录音
+  final AudioRecorder _recorder = AudioRecorder();
+  bool _isRecordingVoice = false;
 
   // 账本可选颜色
   static const _ledgerPalette = [
@@ -65,6 +73,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     _fabAnimCtrl.dispose();
+    _recorder.dispose();
     super.dispose();
   }
 
@@ -123,6 +132,99 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _isVip = vip;
       _budgetStartDay = budgetStartDay;
     });
+  }
+
+  // ---------------- 长按麦克风直接录音 ----------------
+
+  Future<void> _startVoice() async {
+    if (kIsWeb) return;
+    final ready = await AsrService.isReady;
+    if (!ready) {
+      // 模型未下载，打开弹窗让用户下载
+      _openVoiceSheet();
+      return;
+    }
+    final hasPerm = await _recorder.hasPermission();
+    if (!hasPerm) return;
+    setState(() => _isRecordingVoice = true);
+    final path = AsrService.tempRecordPath();
+    try {
+      await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1),
+        path: path,
+      );
+    } catch (_) {
+      if (mounted) setState(() => _isRecordingVoice = false);
+    }
+  }
+
+  Future<void> _stopVoice() async {
+    if (!_isRecordingVoice) return;
+    final path = await _recorder.stop();
+    if (!mounted) return;
+    setState(() => _isRecordingVoice = false);
+    if (path == null) return;
+
+    try {
+      final text = await AsrService.recognizeFile(path);
+      if (!mounted) return;
+      if (text.trim().isEmpty) {
+        _showSnack('没听清，请再说一次');
+        return;
+      }
+      final result = VoiceParser.parse(text);
+      // 金额+分类都有 → 直接保存
+      if (result.amount != null && result.amount! > 0 && result.hasCategory) {
+        await Storage.add(Record(
+          amount: result.amount!,
+          category: result.category,
+          note: text,
+          time: DateTime.now(),
+          isExpense: result.isExpense,
+        ));
+        if (!mounted) return;
+        _showSnack('已记录：${result.category} ¥${result.amount!.toStringAsFixed(0)}');
+        _loadData();
+        _statsKey.currentState?.refresh();
+        _budgetKey.currentState?.refresh();
+      } else {
+        // 识别不全，打开弹窗手动编辑
+        _openVoiceSheet();
+      }
+    } catch (_) {
+      if (mounted) _showSnack('识别失败，请重试');
+    }
+  }
+
+  Future<void> _cancelVoice() async {
+    if (!_isRecordingVoice) return;
+    await _recorder.cancel().catchError((_) => null);
+    if (mounted) setState(() => _isRecordingVoice = false);
+  }
+
+  void _openVoiceSheet() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const VoiceRecordSheet(),
+    );
+    if (result == true) {
+      _loadData();
+      _statsKey.currentState?.refresh();
+      _budgetKey.currentState?.refresh();
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Center(child: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 13))),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: const Color(0xFF10B981).withOpacity(0.95),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   String _formatDate(DateTime date) {
@@ -242,23 +344,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     child: const Icon(Icons.add, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 16),
-                  FloatingActionButton(
-                    heroTag: 'voice',
-                    onPressed: () async {
-                      final result = await showModalBottomSheet<bool>(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => const VoiceRecordSheet(),
-                      );
-                      if (result == true) {
-                        _loadData();
-                        _statsKey.currentState?.refresh();
-                        _budgetKey.currentState?.refresh();
-                      }
-                    },
-                    backgroundColor: theme.accent,
-                    child: const Icon(Icons.mic, color: Colors.white, size: 24),
+                  GestureDetector(
+                    onLongPressStart: (_) => _startVoice(),
+                    onLongPressEnd: (_) => _stopVoice(),
+                    onLongPressCancel: () => _cancelVoice(),
+                    onTap: () => _openVoiceSheet(),
+                    child: FloatingActionButton(
+                      heroTag: 'voice',
+                      onPressed: null,
+                      backgroundColor: _isRecordingVoice ? Colors.red : theme.accent,
+                      child: Icon(
+                        _isRecordingVoice ? Icons.stop : Icons.mic,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ],
               ),
