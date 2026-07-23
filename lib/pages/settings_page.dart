@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
@@ -28,6 +29,7 @@ class SettingsPageState extends State<SettingsPage> {
   int _reminderMinutes = 20 * 60;
   bool _isVip = false;
   String _vipExpiry = '';
+  String _version = '';
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class SettingsPageState extends State<SettingsPage> {
     final reminderMinutes = await Storage.getReminderMinutes();
     final isVip = await VipService.isVip();
     final vipExpiry = await VipService.vipExpiryText();
+    final pkgInfo = await PackageInfo.fromPlatform();
 
     // 有效分类总数 = 内置支出 + 内置收入 + 自定义，排除已删除（与记账页完全一致）
     int total = 0;
@@ -67,6 +70,7 @@ class SettingsPageState extends State<SettingsPage> {
       _reminderMinutes = reminderMinutes;
       _isVip = isVip;
       _vipExpiry = vipExpiry ?? '';
+      _version = pkgInfo.version;
     });
   }
 
@@ -512,7 +516,7 @@ class SettingsPageState extends State<SettingsPage> {
                   icon: Icons.info_outline,
                   iconColor: AppColors.textSecondary,
                   title: '说记',
-                  subtitle: '版本 1.0.0',
+                  subtitle: '版本 ${_version.isEmpty ? "..." : _version}',
                   onTap: null,
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.08)),

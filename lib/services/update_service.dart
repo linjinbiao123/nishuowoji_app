@@ -26,8 +26,10 @@ class UpdateService {
   /// 返回 null 表示请求失败（网络异常等）
   static Future<UpdateInfo?> check() async {
     try {
+      // 加时间戳防止 CDN/手机 HTTP 缓存
+      final uri = Uri.parse('$_versionUrl?t=${DateTime.now().millisecondsSinceEpoch}');
       final resp = await http
-          .get(Uri.parse(_versionUrl))
+          .get(uri, headers: {'Cache-Control': 'no-cache'})
           .timeout(const Duration(seconds: 10));
       if (resp.statusCode != 200) return null;
 
