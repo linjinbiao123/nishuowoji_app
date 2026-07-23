@@ -20,7 +20,7 @@ class UpdateInfo {
 class UpdateService {
   /// 远程版本信息文件（GitHub raw 地址）
   static const _versionUrl =
-      'https://raw.githubusercontent.com/linjinbiao123/nishuowoji_app/main/version.json';
+      'https://cdn.jsdelivr.net/gh/linjinbiao123/nishuowoji_app@main/version.json';
 
   /// 检查是否有新版本
   /// 返回 null 表示请求失败（网络异常等）
