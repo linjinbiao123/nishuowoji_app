@@ -573,6 +573,20 @@ class SettingsPageState extends State<SettingsPage> {
             title: _isVip ? '已开通权限' : '开通权限',
             subtitle: vipSubtitle,
             onTap: () async {
+              if (_isVip) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Center(child: Text(
+                    _vipExpiry == '永久有效' ? '已是永久权限，无需重复激活' : '权限有效期至 $_vipExpiry',
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  )),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: const Color(0xFF10B981).withOpacity(0.95),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  duration: const Duration(seconds: 2),
+                ));
+                return;
+              }
               final ok = await showVipActivateSheet(context);
               if (ok) _loadInfo();
             },
