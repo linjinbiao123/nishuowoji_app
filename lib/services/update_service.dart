@@ -18,24 +18,18 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  /// 通过 GitHub API 读取 version.json（无 CDN 缓存问题，国内可访问）
   static const _apiUrl =
       'https://api.github.com/repos/linjinbiao123/nishuowoji_app/contents/version.json';
+  static const _cdnUrl =
+      'https://cdn.jsdelivr.net/gh/linjinbiao123/nishuowoji_app@main/version.json';
 
   /// 检查是否有新版本
-  /// 返回 null 表示请求失败（网络异常等）
   static Future<UpdateInfo?> check() async {
+    // 先试 GitHub API（无缓存），失败再试 jsdelivr
+    final json = await _fetchFromApi() ?? await _fetchFromCdn();
+    if (json == null) return null;
+
     try {
-      final resp = await http
-          .get(Uri.parse(_apiUrl), headers: {'Accept': 'application/vnd.github.v3+json'})
-          .timeout(const Duration(seconds: 10));
-      if (resp.statusCode != 200) return null;
-
-      // GitHub API 返回 base64 编码的文件内容
-      final apiJson = jsonDecode(resp.body) as Map<String, dynamic>;
-      final content = base64Decode(apiJson['content'] as String);
-      final json = jsonDecode(utf8.decode(content)) as Map<String, dynamic>;
-
       final remoteBuild = json['build'] as int? ?? 0;
       final remoteVersion = json['version'] as String? ?? '';
       final url = json['url'] as String? ?? '';
@@ -50,6 +44,36 @@ class UpdateService {
         url: url,
         note: note,
       );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// GitHub API（实时，无缓存）
+  static Future<Map<String, dynamic>?> _fetchFromApi() async {
+    try {
+      final resp = await http
+          .get(Uri.parse(_apiUrl), headers: {'Accept': 'application/vnd.github.v3+json'})
+          .timeout(const Duration(seconds: 8));
+      if (resp.statusCode != 200) return null;
+      final apiJson = jsonDecode(resp.body) as Map<String, dynamic>;
+      final b64 = (apiJson['content'] as String).replaceAll('\n', '');
+      final content = base64Decode(b64);
+      return jsonDecode(utf8.decode(content)) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// jsdelivr CDN 备用
+  static Future<Map<String, dynamic>?> _fetchFromCdn() async {
+    try {
+      final uri = Uri.parse('$_cdnUrl?t=${DateTime.now().millisecondsSinceEpoch}');
+      final resp = await http
+          .get(uri, headers: {'Cache-Control': 'no-cache'})
+          .timeout(const Duration(seconds: 8));
+      if (resp.statusCode != 200) return null;
+      return jsonDecode(resp.body) as Map<String, dynamic>;
     } catch (_) {
       return null;
     }
