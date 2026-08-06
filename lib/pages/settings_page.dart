@@ -105,7 +105,7 @@ class SettingsPageState extends State<SettingsPage> {
         backgroundColor: AppDark.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('发现新版本 v${info.version}',
-            style: const TextStyle(color: Colors.white, fontSize: 17)),
+            style: TextStyle(color: Colors.white, fontSize: 17)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +129,7 @@ class SettingsPageState extends State<SettingsPage> {
               Navigator.pop(ctx);
               UpdateService.openDownload(info.url);
             },
-            child: const Text('去下载', style: TextStyle(color: Colors.white)),
+            child: Text('去下载', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -176,7 +176,7 @@ class SettingsPageState extends State<SettingsPage> {
             children: [
               Icon(Icons.notifications_off, color: theme.accent, size: 18),
               const SizedBox(width: 8),
-              const Text('未获得通知权限，请前往系统设置开启后重试',
+              Text('未获得通知权限，请前往系统设置开启后重试',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -185,7 +185,9 @@ class SettingsPageState extends State<SettingsPage> {
           ),
         ),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: theme.base[1].withOpacity(0.96),
+        backgroundColor: AppThemeMode.isLight
+            ? const Color(0xFF323232)
+            : theme.base[1].withOpacity(0.96),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -239,9 +241,9 @@ class SettingsPageState extends State<SettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('每日记账提醒', style: TextStyle(
+                  Text('每日记账提醒', style: TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: AppDark.title,
                   )),
                 ],
               ),
@@ -266,7 +268,7 @@ class SettingsPageState extends State<SettingsPage> {
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => StatefulBuilder(
         builder: (sheetCtx, setSheetState) => Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppDark.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
           ),
@@ -295,7 +297,7 @@ class SettingsPageState extends State<SettingsPage> {
                           color: const Color(0xFF8B5CF6).withOpacity(0.12),
                           borderRadius: BorderRadius.circular(11),
                         ),
-                        child: const Icon(Icons.palette_outlined,
+                        child: Icon(Icons.palette_outlined,
                             color: Color(0xFF8B5CF6), size: 20),
                       ),
                       const SizedBox(width: 11),
@@ -315,6 +317,7 @@ class SettingsPageState extends State<SettingsPage> {
                         Expanded(
                           child: _bgSwatch(AppBgTheme.all[i], current == i, () async {
                             await Storage.setBgIndex(i);
+                            AppThemeMode.isLight = AppBgTheme.all[i].isLight;
                             setSheetState(() => current = i);
                             setState(() => _bgIndex = i);
                             widget.onBgChanged?.call(i);
@@ -402,7 +405,7 @@ class SettingsPageState extends State<SettingsPage> {
                 child: Text(
                   t.name,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -417,7 +420,7 @@ class SettingsPageState extends State<SettingsPage> {
                       color: Color(0xFF10B981),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, size: 13, color: Colors.white),
+                    child: Icon(Icons.check, size: 13, color: Colors.white),
                   ),
                 ),
             ],
@@ -437,9 +440,9 @@ class SettingsPageState extends State<SettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('设置', style: TextStyle(
+              Text('设置', style: TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppDark.title,
               )),
               const SizedBox(height: 20),
               // 权限
@@ -463,7 +466,7 @@ class SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 10),
               _buildCard([
                 _buildReminderToggle(),
-                const Divider(height: 1, indent: 52, color: AppDark.divider),
+                Divider(height: 1, indent: 52, color: AppDark.divider),
                 _buildSettingItem(
                   icon: Icons.access_time,
                   iconColor: AppColors.primary,
@@ -493,11 +496,11 @@ class SettingsPageState extends State<SettingsPage> {
                 _buildSettingItem(
                   icon: Icons.insights,
                   iconColor: const Color(0xFF0984E3),
-                  title: '数据统计',
+                  title: '数据统计导出',
                   subtitle: '共 $_recordCount 条记录 · 图表分析',
                   onTap: () => _openDataStats(),
                 ),
-                const Divider(height: 1, indent: 52, color: AppDark.divider),
+                Divider(height: 1, indent: 52, color: AppDark.divider),
                 _buildSettingItem(
                   icon: Icons.delete_forever,
                   iconColor: AppColors.danger,
@@ -519,7 +522,7 @@ class SettingsPageState extends State<SettingsPage> {
                   subtitle: '版本 ${_version.isEmpty ? "..." : _version}',
                   onTap: null,
                 ),
-                Divider(height: 1, color: Colors.white.withOpacity(0.08)),
+                Divider(height: 1, color: AppDark.divider),
                 _buildSettingItem(
                   icon: Icons.system_update_alt,
                   iconColor: const Color(0xFF10B981),
@@ -536,7 +539,7 @@ class SettingsPageState extends State<SettingsPage> {
                   GestureDetector(
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AgreementPage(isPrivacy: true))),
-                    child: const Text('隐私政策', style: TextStyle(fontSize: 12, color: AppDark.hint)),
+                    child: Text('隐私政策', style: TextStyle(fontSize: 12, color: AppDark.hint)),
                   ),
                   const SizedBox(width: 6),
                   Text('·', style: TextStyle(fontSize: 12, color: AppDark.hint)),
@@ -544,7 +547,7 @@ class SettingsPageState extends State<SettingsPage> {
                   GestureDetector(
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => const AgreementPage(isPrivacy: false))),
-                    child: const Text('用户服务协议', style: TextStyle(fontSize: 12, color: AppDark.hint)),
+                    child: Text('用户服务协议', style: TextStyle(fontSize: 12, color: AppDark.hint)),
                   ),
                 ],
               ),
@@ -577,7 +580,7 @@ class SettingsPageState extends State<SettingsPage> {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Center(child: Text(
                     _vipExpiry == '永久有效' ? '已是永久权限，无需重复激活' : '权限有效期至 $_vipExpiry',
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: TextStyle(color: Colors.white, fontSize: 13),
                   )),
                   behavior: SnackBarBehavior.floating,
                   backgroundColor: const Color(0xFF10B981).withOpacity(0.95),
@@ -641,7 +644,7 @@ class SettingsPageState extends State<SettingsPage> {
                 children: [
                   Text(title, style: TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600,
-                    color: danger ? AppColors.danger : Colors.white,
+                    color: danger ? AppColors.danger : AppDark.title,
                   )),
                   Text(subtitle, style: TextStyle(
                     fontSize: 12, color: AppDark.hint,
@@ -696,24 +699,24 @@ class SettingsPageState extends State<SettingsPage> {
                 children: [
                   Row(
                     children: [
-                      const Text('分类管理', style: TextStyle(
+                      Text('分类管理', style: TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w700,
                         color: Colors.white,
                       )),
                       const Spacer(),
                       GestureDetector(
                         onTap: () => Navigator.pop(ctx),
-                        child: const Icon(Icons.close, color: AppDark.sub, size: 22),
+                        child: Icon(Icons.close, color: AppDark.sub, size: 22),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text('长按分类可删除 · 底部可添加自定义分类', style: TextStyle(
+                  Text('长按分类可删除 · 底部可添加自定义分类', style: TextStyle(
                     fontSize: 12, color: AppDark.hint,
                   )),
                   const SizedBox(height: 16),
                   // 支出分类
-                  const Text('支出分类', style: TextStyle(
+                  Text('支出分类', style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600, color: AppDark.hint,
                   )),
                   const SizedBox(height: 10),
@@ -738,7 +741,7 @@ class SettingsPageState extends State<SettingsPage> {
                             children: [
                               Icon(c.icon, size: 16, color: c.color),
                               const SizedBox(width: 5),
-                              Text(name, style: const TextStyle(fontSize: 13, color: Colors.white)),
+                              Text(name, style: TextStyle(fontSize: 13, color: Colors.white)),
                               if (deletingCat == name) ...[
                                 const SizedBox(width: 5),
                                 GestureDetector(
@@ -758,7 +761,7 @@ class SettingsPageState extends State<SettingsPage> {
                                   child: Container(
                                     width: 16, height: 16,
                                     decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
-                                    child: const Icon(Icons.close, color: Colors.white, size: 10),
+                                    child: Icon(Icons.close, color: Colors.white, size: 10),
                                   ),
                                 ),
                               ],
@@ -770,7 +773,7 @@ class SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 16),
                   // 收入分类
-                  const Text('收入分类', style: TextStyle(
+                  Text('收入分类', style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600, color: AppDark.hint,
                   )),
                   const SizedBox(height: 10),
@@ -795,7 +798,7 @@ class SettingsPageState extends State<SettingsPage> {
                             children: [
                               Icon(c.icon, size: 16, color: c.color),
                               const SizedBox(width: 5),
-                              Text(name, style: const TextStyle(fontSize: 13, color: Colors.white)),
+                              Text(name, style: TextStyle(fontSize: 13, color: Colors.white)),
                               if (deletingCat == name) ...[
                                 const SizedBox(width: 5),
                                 GestureDetector(
@@ -815,7 +818,7 @@ class SettingsPageState extends State<SettingsPage> {
                                   child: Container(
                                     width: 16, height: 16,
                                     decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
-                                    child: const Icon(Icons.close, color: Colors.white, size: 10),
+                                    child: Icon(Icons.close, color: Colors.white, size: 10),
                                   ),
                                 ),
                               ],
@@ -827,7 +830,7 @@ class SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 16),
                   // 自定义分类（支持在此新建）
-                  const Text('自定义分类', style: TextStyle(
+                  Text('自定义分类', style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600, color: AppDark.hint,
                   )),
                   const SizedBox(height: 10),
@@ -850,7 +853,7 @@ class SettingsPageState extends State<SettingsPage> {
                               children: [
                                 const Icon(Categories.customIcon, size: 16, color: Categories.customColor),
                                 const SizedBox(width: 5),
-                                Text(name, style: const TextStyle(fontSize: 13, color: Colors.white)),
+                                Text(name, style: TextStyle(fontSize: 13, color: Colors.white)),
                                 if (deletingCat == name) ...[
                                   const SizedBox(width: 5),
                                   GestureDetector(
@@ -870,7 +873,7 @@ class SettingsPageState extends State<SettingsPage> {
                                     child: Container(
                                       width: 16, height: 16,
                                       decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 10),
+                                      child: Icon(Icons.close, color: Colors.white, size: 10),
                                     ),
                                   ),
                                 ],
@@ -927,15 +930,15 @@ class SettingsPageState extends State<SettingsPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppDark.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('新建自定义分类', style: TextStyle(color: Colors.white)),
+        title: Text('新建自定义分类', style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLength: 8,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: '输入分类名称',
-            hintStyle: const TextStyle(color: AppDark.hint),
+            hintStyle: TextStyle(color: AppDark.hint),
             filled: true,
             fillColor: Colors.white.withOpacity(0.08),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -944,7 +947,7 @@ class SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消', style: TextStyle(color: AppDark.sub)),
+            child: Text('取消', style: TextStyle(color: AppDark.sub)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -968,7 +971,7 @@ class SettingsPageState extends State<SettingsPage> {
               backgroundColor: const Color(0xFF10B981),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('添加', style: TextStyle(color: Colors.white)),
+            child: Text('添加', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -992,10 +995,10 @@ class SettingsPageState extends State<SettingsPage> {
                   color: AppColors.danger.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.warning_amber, color: AppColors.danger, size: 26),
+                child: Icon(Icons.warning_amber, color: AppColors.danger, size: 26),
               ),
               const SizedBox(height: 14),
-              const Text('清空账本数据', style: TextStyle(
+              Text('清空账本数据', style: TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w700,
                 color: Colors.white,
               )),
@@ -1003,7 +1006,7 @@ class SettingsPageState extends State<SettingsPage> {
               Text(
                 '此操作将删除「$_ledgerName」的全部 $_recordCount 条记录，\n其他账本不受影响，删除后无法恢复！',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppDark.sub, fontSize: 13, height: 1.5),
+                style: TextStyle(color: AppDark.sub, fontSize: 13, height: 1.5),
               ),
               const SizedBox(height: 20),
               Row(

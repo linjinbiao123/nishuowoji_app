@@ -116,21 +116,21 @@ class BudgetPageState extends State<BudgetPage> {
                   shaderCallback: (bounds) => const LinearGradient(
                     colors: [Color(0xFF10B981), Color(0xFF059669)],
                   ).createShader(bounds),
-                  child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 28),
+                  child: Icon(Icons.account_balance_wallet, color: Colors.white, size: 28),
                 ),
                 const SizedBox(width: 8),
-                const Text('预算', style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white,
+                Text('预算', style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.w800, color: AppDark.title,
                 )),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: AppDark.cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withOpacity(0.12)),
+                    border: Border.all(color: AppDark.cardBorder),
                   ),
-                  child: Text('${now.year}年${now.month}月', style: const TextStyle(
+                  child: Text('${now.year}年${now.month}月', style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w600, color: AppDark.sub,
                   )),
                 ),
@@ -165,13 +165,13 @@ class BudgetPageState extends State<BudgetPage> {
               color: const Color(0xFF10B981).withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.lock_outline, size: 30, color: Color(0xFF10B981)),
+            child: Icon(Icons.lock_outline, size: 30, color: Color(0xFF10B981)),
           ),
           const SizedBox(height: 16),
-          const Text('分类预算', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+          Text('分类预算', style: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.w700, color: AppDark.title)),
           const SizedBox(height: 6),
-          const Text('按分类精细控制预算，开通权限即可使用',
+          Text('按分类精细控制预算，开通权限即可使用',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12.5, color: AppDark.sub)),
           const SizedBox(height: 20),
@@ -180,8 +180,8 @@ class BudgetPageState extends State<BudgetPage> {
               final ok = await showVipActivateSheet(context, feature: '分类预算');
               if (ok) _loadData();
             },
-            icon: const Icon(Icons.workspace_premium, size: 18, color: Colors.white),
-            label: const Text('开通权限', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+            icon: Icon(Icons.workspace_premium, size: 18, color: Colors.white),
+            label: Text('开通权限', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981),
               foregroundColor: Colors.white,
@@ -257,19 +257,19 @@ class BudgetPageState extends State<BudgetPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('本月预算', style: TextStyle(fontSize: 13, color: AppDark.sub)),
+                  Text('本月预算', style: TextStyle(fontSize: 13, color: AppDark.sub)),
                   const SizedBox(height: 6),
                   Text(
                     '¥${_monthExpense.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white,
+                    style: TextStyle(
+                      fontSize: 26, fontWeight: FontWeight.w800, color: AppDark.title,
                     ),
                   ),
                   const SizedBox(height: 4),
                   if (hasBudget) ...[
                     Text(
                       '预算 ¥${_monthlyBudget.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 12, color: AppDark.sub),
+                      style: TextStyle(fontSize: 12, color: AppDark.sub),
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -298,32 +298,32 @@ class BudgetPageState extends State<BudgetPage> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.today, size: 14, color: AppDark.sub),
+                          Icon(Icons.today, size: 14, color: AppDark.sub),
                           const SizedBox(width: 4),
                           Text(
                             '今日可花 ¥${dailyAllowance.toStringAsFixed(0)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                               color: AppDark.sub,
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Icon(Icons.calendar_view_week, size: 14, color: AppDark.hint),
+                          Icon(Icons.calendar_view_week, size: 14, color: AppDark.hint),
                           const SizedBox(width: 4),
                           Text(
                             '平均每日 ¥${rawAllowance.toStringAsFixed(0)}',
-                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.hint),
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.hint),
                           ),
                         ],
                       ),
                     ],
                   ] else
-                    const Text('未设置 · 点击设置月预算', style: TextStyle(fontSize: 12, color: AppDark.hint)),
+                    Text('未设置 · 点击设置月预算', style: TextStyle(fontSize: 12, color: AppDark.hint)),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppDark.hint, size: 22),
+            Icon(Icons.chevron_right, color: AppDark.hint, size: 22),
           ],
         ),
       ),
@@ -347,22 +347,22 @@ class BudgetPageState extends State<BudgetPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('设置月预算', style: TextStyle(
+                Text('设置月预算', style: TextStyle(
                   fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
                 )),
                 const SizedBox(height: 6),
-                const Text('设置每月支出预算，帮助控制消费', style: TextStyle(
+                Text('设置每月支出预算，帮助控制消费', style: TextStyle(
                   fontSize: 13, color: AppDark.sub,
                 )),
                 const SizedBox(height: 16),
                 TextField(
                   controller: controller,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   decoration: InputDecoration(
                     prefixText: '¥ ',
                     hintText: '输入月预算金额',
-                    hintStyle: const TextStyle(color: AppDark.hint),
+                    hintStyle: TextStyle(color: AppDark.hint),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.08),
                     border: OutlineInputBorder(
@@ -376,7 +376,7 @@ class BudgetPageState extends State<BudgetPage> {
                 // 预算周期起始日
                 Row(
                   children: [
-                    const Text('起始日', style: TextStyle(fontSize: 14, color: AppDark.sub)),
+                    Text('起始日', style: TextStyle(fontSize: 14, color: AppDark.sub)),
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -388,8 +388,8 @@ class BudgetPageState extends State<BudgetPage> {
                         child: DropdownButton<int>(
                           value: selectedDay,
                           dropdownColor: AppDark.surface,
-                          style: const TextStyle(fontSize: 14, color: Colors.white),
-                          icon: const Icon(Icons.arrow_drop_down, color: AppDark.sub, size: 20),
+                          style: TextStyle(fontSize: 14, color: Colors.white),
+                          icon: Icon(Icons.arrow_drop_down, color: AppDark.sub, size: 20),
                           items: List.generate(28, (i) => i + 1)
                               .map((d) => DropdownMenuItem(value: d, child: Text('每月${d}号')))
                               .toList(),
@@ -404,7 +404,7 @@ class BudgetPageState extends State<BudgetPage> {
                   selectedDay == 1
                       ? '周期：每月1号 ~ 月末'
                       : '周期：每月${selectedDay}号 ~ 次月${selectedDay - 1}号',
-                  style: const TextStyle(fontSize: 11.5, color: AppDark.hint),
+                  style: TextStyle(fontSize: 11.5, color: AppDark.hint),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -462,14 +462,14 @@ class BudgetPageState extends State<BudgetPage> {
     final setCount = _categoryBudgets.values.where((v) => v > 0).length;
     return Row(
       children: [
-        const Text('分类预算', style: TextStyle(
-          fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
+        Text('分类预算', style: TextStyle(
+          fontSize: 17, fontWeight: FontWeight.w700, color: AppDark.title,
         )),
         const SizedBox(width: 8),
         if (setCount > 0)
-          Text('已设 $setCount 个', style: const TextStyle(fontSize: 12, color: AppDark.hint)),
+          Text('已设 $setCount 个', style: TextStyle(fontSize: 12, color: AppDark.hint)),
         const Spacer(),
-        const Text('点击分类设置预算', style: TextStyle(fontSize: 11.5, color: AppDark.hint)),
+        Text('点击分类设置预算', style: TextStyle(fontSize: 11.5, color: AppDark.hint)),
       ],
     );
   }
@@ -492,7 +492,7 @@ class BudgetPageState extends State<BudgetPage> {
       child: Column(
         children: [
           for (int i = 0; i < sorted.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: AppDark.divider),
+            if (i > 0) Divider(height: 1, color: AppDark.divider),
             _buildCategoryRow(sorted[i]),
           ],
         ],
@@ -538,8 +538,8 @@ class BudgetPageState extends State<BudgetPage> {
                     children: [
                       Row(
                         children: [
-                          Text(name, style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white,
+                          Text(name, style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: AppDark.title,
                           )),
                           if (isOver) ...[
                             const SizedBox(width: 6),
@@ -549,7 +549,7 @@ class BudgetPageState extends State<BudgetPage> {
                                 color: AppColors.danger.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('超支', style: TextStyle(
+                              child: Text('超支', style: TextStyle(
                                 fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.danger,
                               )),
                             ),
@@ -577,11 +577,11 @@ class BudgetPageState extends State<BudgetPage> {
                       fontWeight: FontWeight.w700,
                       color: isOver
                           ? AppColors.danger
-                          : (isWarning ? const Color(0xFFFF9F43) : Colors.white),
+                          : (isWarning ? const Color(0xFFFF9F43) : AppDark.title),
                     ),
                   )
                 else
-                  const Icon(Icons.add_circle_outline, size: 18, color: AppDark.hint),
+                  Icon(Icons.add_circle_outline, size: 18, color: AppDark.hint),
               ],
             ),
             if (hasBudget) ...[
@@ -633,7 +633,7 @@ class BudgetPageState extends State<BudgetPage> {
                     child: Icon(c.icon, size: 19, color: c.color),
                   ),
                   const SizedBox(width: 10),
-                  Text('$name · 月预算', style: const TextStyle(
+                  Text('$name · 月预算', style: TextStyle(
                     fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white,
                   )),
                 ],
@@ -642,11 +642,11 @@ class BudgetPageState extends State<BudgetPage> {
               TextField(
                 controller: controller,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                 decoration: InputDecoration(
                   prefixText: '¥ ',
                   hintText: '输入预算金额，留空则清除',
-                  hintStyle: const TextStyle(color: AppDark.hint),
+                  hintStyle: TextStyle(color: AppDark.hint),
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.08),
                   border: OutlineInputBorder(

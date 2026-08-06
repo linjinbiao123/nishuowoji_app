@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
+import '../widgets/attachment_image.dart';
+import '../widgets/image_viewer.dart';
+import '../services/attachment_service.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -16,6 +19,7 @@ class HistoryPageState extends State<HistoryPage> {
   DateTime? _selectedDay;
   bool _showCalendar = false;
   bool _isYearly = false;
+  String _attachDir = '';
 
   final _categoryIcons = <String, IconData>{
     '餐饮': Icons.restaurant,
@@ -62,6 +66,9 @@ class HistoryPageState extends State<HistoryPage> {
     super.initState();
     _loadData();
     _loadCustomCategories();
+    AttachmentService.dirPath().then((d) {
+      if (mounted) setState(() => _attachDir = d);
+    });
   }
 
   void refresh() => _loadData();
@@ -166,9 +173,9 @@ class HistoryPageState extends State<HistoryPage> {
               // 标题 + 月份切换
               Row(
                 children: [
-                  const Text('历史账单', style: TextStyle(
+                  Text('历史账单', style: TextStyle(
                     fontSize: 22, fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: AppDark.title,
                   )),
                   const Spacer(),
                   GestureDetector(
@@ -176,17 +183,17 @@ class HistoryPageState extends State<HistoryPage> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: AppDark.cardBg,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.12)),
+                        border: Border.all(color: AppDark.cardBorder),
                       ),
-                      child: const Icon(Icons.chevron_left, size: 20, color: Colors.white),
+                      child: Icon(Icons.chevron_left, size: 20, color: AppDark.sub),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     _isYearly ? '${_currentMonth.year}年' : '${_currentMonth.year}年${_currentMonth.month}月',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDark.title),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
@@ -194,11 +201,11 @@ class HistoryPageState extends State<HistoryPage> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: AppDark.cardBg,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.12)),
+                        border: Border.all(color: AppDark.cardBorder),
                       ),
-                      child: const Icon(Icons.chevron_right, size: 20, color: Colors.white),
+                      child: Icon(Icons.chevron_right, size: 20, color: AppDark.sub),
                     ),
                   ),
                 ],
@@ -211,9 +218,9 @@ class HistoryPageState extends State<HistoryPage> {
                   Container(
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: AppDark.cardBg,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withOpacity(0.12)),
+                      border: Border.all(color: AppDark.cardBorder),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -223,12 +230,12 @@ class HistoryPageState extends State<HistoryPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: !_isYearly ? Colors.white.withOpacity(0.20) : Colors.transparent,
+                              color: !_isYearly ? AppDark.cardBg : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text('月度', style: TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600,
-                              color: !_isYearly ? Colors.white : AppDark.sub,
+                              color: !_isYearly ? AppDark.title : AppDark.sub,
                             )),
                           ),
                         ),
@@ -237,12 +244,12 @@ class HistoryPageState extends State<HistoryPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: _isYearly ? Colors.white.withOpacity(0.20) : Colors.transparent,
+                              color: _isYearly ? AppDark.cardBg : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text('年度', style: TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600,
-                              color: _isYearly ? Colors.white : AppDark.sub,
+                              color: _isYearly ? AppDark.title : AppDark.sub,
                             )),
                           ),
                         ),
@@ -260,28 +267,28 @@ class HistoryPageState extends State<HistoryPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: _showCalendar ? Colors.white.withOpacity(0.18) : Colors.white.withOpacity(0.08),
+                          color: AppDark.cardBg,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withOpacity(0.12)),
+                          border: Border.all(color: AppDark.cardBorder),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.calendar_month, size: 14,
-                              color: _showCalendar ? Colors.white : AppDark.sub),
+                              color: _showCalendar ? AppDark.title : AppDark.sub),
                             const SizedBox(width: 4),
                             Text(
                               _showCalendar ? '收起' : '日历',
                               style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w500,
-                                color: _showCalendar ? Colors.white : AppDark.sub,
+                                color: _showCalendar ? AppDark.title : AppDark.sub,
                               ),
                             ),
                             const SizedBox(width: 2),
                             Icon(
                               _showCalendar ? Icons.expand_less : Icons.expand_more,
                               size: 14,
-                              color: _showCalendar ? Colors.white : AppDark.sub,
+                              color: _showCalendar ? AppDark.title : AppDark.sub,
                             ),
                           ],
                         ),
@@ -304,34 +311,34 @@ class HistoryPageState extends State<HistoryPage> {
                     Expanded(
                       child: Column(
                         children: [
-                          const Text('收入', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                          Text('收入', style: TextStyle(color: AppDark.sub, fontSize: 12)),
                           const SizedBox(height: 4),
-                          Text('+¥${_displayIncome.toStringAsFixed(2)}', style: const TextStyle(
+                          Text('+¥${_displayIncome.toStringAsFixed(2)}', style: TextStyle(
                             color: Color(0xFF34D399), fontSize: 15, fontWeight: FontWeight.w700,
                           )),
                         ],
                       ),
                     ),
-                    Container(width: 1, height: 28, color: Colors.white.withOpacity(0.12)),
+                    Container(width: 1, height: 28, color: AppDark.divider),
                     Expanded(
                       child: Column(
                         children: [
-                          const Text('支出', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                          Text('支出', style: TextStyle(color: AppDark.sub, fontSize: 12)),
                           const SizedBox(height: 4),
-                          Text('-¥${_displayExpense.toStringAsFixed(2)}', style: const TextStyle(
+                          Text('-¥${_displayExpense.toStringAsFixed(2)}', style: TextStyle(
                             color: Color(0xFFFB7185), fontSize: 15, fontWeight: FontWeight.w700,
                           )),
                         ],
                       ),
                     ),
-                    Container(width: 1, height: 28, color: Colors.white.withOpacity(0.12)),
+                    Container(width: 1, height: 28, color: AppDark.divider),
                     Expanded(
                       child: Column(
                         children: [
-                          const Text('笔数', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                          Text('笔数', style: TextStyle(color: AppDark.sub, fontSize: 12)),
                           const SizedBox(height: 4),
-                          Text('${_displayRecords.length}', style: const TextStyle(
-                            color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700,
+                          Text('${_displayRecords.length}', style: TextStyle(
+                            color: AppDark.title, fontSize: 15, fontWeight: FontWeight.w700,
                           )),
                         ],
                       ),
@@ -348,7 +355,7 @@ class HistoryPageState extends State<HistoryPage> {
                     children: [
                       Text(
                         '${_selectedDay!.month}月${_selectedDay!.day}日 的记录',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDark.title),
                       ),
                       const Spacer(),
                       GestureDetector(
@@ -356,9 +363,9 @@ class HistoryPageState extends State<HistoryPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.10),
+                            color: AppDark.cardBg,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white.withOpacity(0.14)),
+                            border: Border.all(color: AppDark.cardBorder),
                           ),
                           child: Text('查看全月', style: TextStyle(
                             fontSize: 12, color: AppColors.accent,
@@ -444,7 +451,7 @@ class HistoryPageState extends State<HistoryPage> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w400,
-                          color: isSelected ? Colors.white : (isToday ? AppColors.accent : Colors.white),
+                          color: isSelected ? Colors.white : (isToday ? AppColors.accent : AppDark.title),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -487,7 +494,7 @@ class HistoryPageState extends State<HistoryPage> {
               children: [
                 Text(
                   day != null ? '${month}月${day}日' : '${month}月',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppDark.title),
                 ),
                 const Spacer(),
                 if (expense > 0)
@@ -503,7 +510,7 @@ class HistoryPageState extends State<HistoryPage> {
               ],
             ),
             const SizedBox(height: 6),
-            const Divider(height: 1, color: AppDark.divider),
+            Divider(height: 1, color: AppDark.divider),
             ...records.map((r) => _buildRecordItem(r)),
           ],
         ),
@@ -534,9 +541,26 @@ class HistoryPageState extends State<HistoryPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(r.category, style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 14, color: Colors.white,
-                  )),
+                  Row(
+                    children: [
+                      Text(r.category, style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14, color: AppDark.title,
+                      )),
+                      if (r.isInvoice) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFB020).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text('发票', style: TextStyle(
+                            color: Color(0xFFFFB020), fontSize: 10, fontWeight: FontWeight.w600,
+                          )),
+                        ),
+                      ],
+                    ],
+                  ),
                   if (r.note != r.category)
                     Text(r.note, style: TextStyle(
                       color: AppDark.sub, fontSize: 12,
@@ -544,6 +568,40 @@ class HistoryPageState extends State<HistoryPage> {
                 ],
               ),
             ),
+            if (r.images.isNotEmpty) ...[
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => _showImageViewer(r.images),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ...r.images.take(3).map((img) => Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: AttachmentImage(
+                          path: _attachDir.isNotEmpty ? '$_attachDir/$img' : img,
+                          width: 38, height: 38,
+                        ),
+                      ),
+                    )).toList(),
+                    if (r.images.length > 3)
+                      Container(
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '+${r.images.length - 3}',
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -562,6 +620,19 @@ class HistoryPageState extends State<HistoryPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 全屏查看附件，支持手势滑动与按钮切换
+  void _showImageViewer(List<String> names, {int initialIndex = 0}) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (ctx) => ImageViewerDialog(
+        names: names,
+        attachDir: _attachDir,
+        initialIndex: initialIndex,
       ),
     );
   }
@@ -586,7 +657,7 @@ class HistoryPageState extends State<HistoryPage> {
                 child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 26),
               ),
               const SizedBox(height: 14),
-              const Text('删除记录', style: TextStyle(
+              Text('删除记录', style: TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w700,
                 color: Colors.white,
               )),
@@ -594,7 +665,7 @@ class HistoryPageState extends State<HistoryPage> {
               Text(
                 '确定删除「${r.category}」¥${r.amount.toStringAsFixed(2)} 吗？\n删除后无法恢复',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppDark.sub, fontSize: 13, height: 1.5),
+                style: TextStyle(color: AppDark.sub, fontSize: 13, height: 1.5),
               ),
               const SizedBox(height: 20),
               Row(
@@ -605,7 +676,7 @@ class HistoryPageState extends State<HistoryPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: AppDark.cardBg,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(

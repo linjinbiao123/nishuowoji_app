@@ -7,9 +7,27 @@ class AppBgTheme {
   final List<Color> base; // 底层渐变（左上 → 右下）
   final List<Color> glows; // 两个环境光晕颜色
   final Color accent; // 强调色（FAB/按钮等品牌元素跟随主题）
-  const AppBgTheme({required this.name, required this.base, required this.glows, required this.accent});
+  final bool isLight; // 是否为浅色（亮色）主题
+  const AppBgTheme({
+    required this.name,
+    required this.base,
+    required this.glows,
+    required this.accent,
+    this.isLight = false,
+  });
+
+  /// 直接贴在背景上的主文字颜色（浅色主题用深字，深色主题用白字）
+  Color get onBg => isLight ? const Color(0xFF1F2329) : Colors.white;
 
   static const List<AppBgTheme> all = [
+    // 第 0 位：默认主题。纯白底 + 黑/灰字，真·微信风格。
+    AppBgTheme(
+      name: '简约白',
+      base: [Colors.white, Colors.white],
+      glows: [Color(0xFFB9C4DA), Color(0xFFB7E0CF)],
+      accent: Color(0xFF07C160), // 微信绿
+      isLight: true,
+    ),
     AppBgTheme(
       name: '深空蓝',
       base: [Color(0xFF0B1220), Color(0xFF152036)],
@@ -37,15 +55,20 @@ class AppBgTheme {
   ];
 }
 
-/// 深色界面统一文字/分割线颜色
+/// 界面统一文字/分割线颜色（随明暗主题自动切换）
 class AppDark {
-  static const Color title = Colors.white; // 标题
-  static const Color body = Color(0xD9FFFFFF); // 主要文字 0.85
-  static const Color sub = Color(0x99FFFFFF); // 次要文字 0.6
-  static const Color hint = Color(0x66FFFFFF); // 占位/弱化 0.4
-  static const Color divider = Color(0x1AFFFFFF); // 分割线 0.10
-  static const Color track = Color(0x14FFFFFF); // 进度条底 0.08
-  static const Color surface = Color(0xFF18212F); // 不透明深色面板（需遮挡底层时用）
+  static bool get _light => AppThemeMode.isLight;
+  static Color get title => _light ? const Color(0xFF1A1A1A) : Colors.white;
+  static Color get body => _light ? const Color(0xFF333333) : const Color(0xD9FFFFFF);
+  static Color get sub => _light ? const Color(0xFF666666) : const Color(0x99FFFFFF);
+  static Color get hint => _light ? const Color(0xFF999999) : const Color(0x66FFFFFF);
+  static Color get divider => _light ? const Color(0xFFE5E7EB) : const Color(0x1AFFFFFF);
+  static Color get track => _light ? const Color(0xFFE5E7EB) : const Color(0x14FFFFFF);
+  // 弹窗/对话框背景保持深色（不随主题变浅），其内部白字天然可见，避免逐弹窗改色
+  static Color get surface => const Color(0xFF18212F);
+  // 卡片背景/边框：浅色主题用白底浅灰边，深色主题用半透明白
+  static Color get cardBg => _light ? Colors.white : Colors.white.withOpacity(0.07);
+  static Color get cardBorder => _light ? const Color(0xFFE5E7EB) : Colors.white.withOpacity(0.10);
 }
 
 /// 全局深色背景：渐变底 + 环境光晕，[child] 叠在其上。
@@ -56,6 +79,27 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (theme.isLight) {
+      // 浅色主题：纯白背景，不叠加彩色光晕（真·白底黑字）
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOut,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: theme.base,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      );
+    }
     return Stack(
       children: [
         Positioned.fill(
@@ -103,7 +147,7 @@ class _Glow extends StatelessWidget {
   }
 }
 
-/// 毛玻璃卡片（半透明白 + 背景模糊 + 细白边）
+/// 卡片（浅色主题=白底浅灰边+阴影；深色主题=半透明白毛玻璃）
 class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -112,6 +156,29 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = AppThemeMode.isLight;
+    if (isLight) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(
+          width: double.infinity,
+          padding: padding ?? const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 16,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
@@ -129,4 +196,11 @@ class GlassCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 全局明暗主题状态。
+/// 由 main() 在启动时初始化，并在设置页切换主题时同步更新。
+/// AppDark、GlassCard 等据此返回对应明暗的配色。
+class AppThemeMode {
+  static bool isLight = true;
 }

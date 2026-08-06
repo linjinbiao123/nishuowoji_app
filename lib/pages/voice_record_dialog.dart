@@ -309,9 +309,11 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Center(child: Text(msg,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
+          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: _theme.base[1].withOpacity(0.96),
+      backgroundColor: AppThemeMode.isLight
+          ? const Color(0xFF323232)
+          : _theme.base[1].withOpacity(0.96),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -338,7 +340,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
         children: [
           Center(
             child: Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2),
+              decoration: BoxDecoration(color: AppDark.divider,
                 borderRadius: BorderRadius.circular(2))),
           ),
           const SizedBox(height: 16),
@@ -346,8 +348,8 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
             children: [
               Icon(Icons.mic, color: theme.accent, size: 24),
               const SizedBox(width: 10),
-              const Text('语音记账', style: TextStyle(
-                fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)),
+              Text('语音记账', style: TextStyle(
+                fontSize: 19, fontWeight: FontWeight.w800, color: AppDark.title)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -355,7 +357,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
                   color: theme.accent.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('离线识别', style: TextStyle(fontSize: 11, color: AppDark.sub)),
+                child: Text('离线识别', style: TextStyle(fontSize: 11, color: AppDark.sub)),
               ),
             ],
           ),
@@ -378,7 +380,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
       const SizedBox(height: 16),
       Icon(Icons.info_outline, size: 52, color: theme.accent),
       const SizedBox(height: 18),
-      const Text('网页版不支持语音记账', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
+      Text('网页版不支持语音记账', style: TextStyle(fontSize: 15, color: AppDark.title, fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
       Text('语音识别需要在手机 App 中使用', style: TextStyle(fontSize: 12.5, color: AppDark.sub)),
       const SizedBox(height: 24),
@@ -392,7 +394,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
         const SizedBox(height: 10),
         Icon(Icons.downloading, size: 56, color: theme.accent),
         const SizedBox(height: 18),
-        const Text('正在下载语音模型…', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
+        Text('正在下载语音模型…', style: TextStyle(fontSize: 15, color: AppDark.title, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Text('约 82MB，仅首次需要，下载后即可完全离线使用', style: TextStyle(fontSize: 12, color: AppDark.sub)),
         const SizedBox(height: 20),
@@ -401,7 +403,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
           child: LinearProgressIndicator(
             value: _progress > 0 ? _progress : null,
             minHeight: 8,
-            backgroundColor: Colors.white.withOpacity(0.1),
+            backgroundColor: AppDark.track,
             valueColor: AlwaysStoppedAnimation(theme.accent),
           ),
         ),
@@ -414,7 +416,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
       const SizedBox(height: 6),
       Icon(Icons.cloud_download_outlined, size: 56, color: theme.accent),
       const SizedBox(height: 18),
-      const Text('首次使用需下载语音模型', style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
+      Text('首次使用需下载语音模型', style: TextStyle(fontSize: 15, color: AppDark.title, fontWeight: FontWeight.w600)),
       const SizedBox(height: 6),
       Text('约 82MB，下载一次后语音记账完全离线，录音不出手机',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppDark.sub, height: 1.5)),
@@ -500,7 +502,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
         style: TextStyle(fontSize: 14, color: AppDark.sub),
       ),
       const SizedBox(height: 6),
-      const Text('例如：「午餐花了 25 元」', style: TextStyle(fontSize: 12, color: AppDark.hint)),
+      Text('例如：「午餐花了 25 元」', style: TextStyle(fontSize: 12, color: AppDark.hint)),
     ];
   }
 
@@ -511,7 +513,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: AppDark.cardBg,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -519,7 +521,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
           children: [
             Icon(Icons.record_voice_over, size: 18, color: theme.accent),
             const SizedBox(width: 8),
-            Expanded(child: Text(_text, style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.4))),
+            Expanded(child: Text(_text, style: TextStyle(fontSize: 14, color: AppDark.title, height: 1.4))),
           ],
         ),
       ),
@@ -528,7 +530,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: AppDark.cardBg,
           borderRadius: BorderRadius.circular(12),
         ),
         child: TextField(
@@ -542,7 +544,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
             prefixStyle: TextStyle(fontSize: 26, fontWeight: FontWeight.w800,
               color: _isExpense ? AppColors.danger : AppColors.success),
             hintText: '0.00',
-            hintStyle: const TextStyle(color: AppDark.hint, fontSize: 26),
+            hintStyle: TextStyle(color: AppDark.hint, fontSize: 26),
             border: InputBorder.none,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -574,7 +576,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: selected ? c.color.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                    color: selected ? c.color.withOpacity(0.15) : AppDark.cardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: selected ? c.color : AppDark.divider),
                   ),
@@ -601,7 +603,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
               onPressed: () => setState(() { _stage = _Stage.idle; _text = ''; _error = ''; }),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppDark.sub,
-                side: const BorderSide(color: AppDark.divider),
+                side: BorderSide(color: AppDark.divider),
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -634,7 +636,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+            color: selected ? color.withOpacity(0.15) : AppDark.cardBg,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: selected ? color : AppDark.divider),
           ),

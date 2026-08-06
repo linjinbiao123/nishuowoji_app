@@ -205,13 +205,13 @@ class StatsPageState extends State<StatsPage> {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Container(
-          width: double.infinity,
-          padding: padding ?? const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.10)),
-          ),
+        width: double.infinity,
+        padding: padding ?? const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppDark.cardBg,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppDark.cardBorder),
+        ),
           child: child,
         ),
       ),
@@ -223,17 +223,17 @@ class StatsPageState extends State<StatsPage> {
   Widget _buildHeader() {
     return Row(
       children: [
-        const Text('统计', style: TextStyle(
-          color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 1,
+        Text('统计', style: TextStyle(
+          color: AppDark.title, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 1,
         )),
         const Spacer(),
         // 月度/年度切换（毛玻璃分段）
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07),
+            color: AppDark.cardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.10)),
+            border: Border.all(color: AppDark.cardBorder),
           ),
           child: Row(
             children: [
@@ -262,13 +262,13 @@ class StatsPageState extends State<StatsPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? Colors.white.withOpacity(0.20) : Colors.transparent,
+          color: selected ? AppDark.cardBg : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: selected ? Colors.white : Colors.white.withOpacity(0.55),
+            color: selected ? AppDark.title : AppDark.sub,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13,
           ),
@@ -290,23 +290,23 @@ class StatsPageState extends State<StatsPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.07),
+              color: AppDark.cardBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.10)),
+              border: Border.all(color: AppDark.cardBorder),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.calendar_month, color: Colors.white.withOpacity(0.6), size: 15),
+                Icon(Icons.calendar_month, color: AppDark.sub, size: 15),
                 const SizedBox(width: 6),
                 Text(
                   _getMonthYearText(),
-                  style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5,
+                  style: TextStyle(
+                    color: AppDark.title, fontWeight: FontWeight.w700, fontSize: 13.5,
                   ),
                 ),
                 const SizedBox(width: 4),
-                Icon(Icons.expand_more, color: Colors.white.withOpacity(0.5), size: 16),
+                Icon(Icons.expand_more, color: AppDark.sub, size: 16),
               ],
             ),
           ),
@@ -324,11 +324,11 @@ class StatsPageState extends State<StatsPage> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.07),
+          color: AppDark.cardBg,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.10)),
+          border: Border.all(color: AppDark.cardBorder),
         ),
-        child: Icon(icon, size: 19, color: Colors.white.withOpacity(0.75)),
+        child: Icon(icon, size: 19, color: AppDark.sub),
       ),
     );
   }
@@ -363,7 +363,7 @@ class StatsPageState extends State<StatsPage> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetCtx) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppDark.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
         ),
@@ -468,12 +468,11 @@ class StatsPageState extends State<StatsPage> {
                         final dayExpense = dailyExpense[day] ?? 0;
                         return GestureDetector(
                           onTap: () {
-                            setState(() {
-                              _selectedYear = pickerYear;
-                              _selectedMonth = pickerMonth;
-                            });
-                            _calculateStats(_records);
+                            // 直接查看当天记录：先关日历，再加一帧弹出当日记录列表
                             Navigator.pop(sheetCtx);
+                            Future.delayed(Duration.zero, () {
+                              _showDayRecords(day, year: pickerYear, month: pickerMonth);
+                            });
                           },
                           child: Container(
                             margin: const EdgeInsets.all(2),
@@ -511,7 +510,7 @@ class StatsPageState extends State<StatsPage> {
                       },
                     ),
                     const SizedBox(height: 8),
-                    Text('点击任意日期查看该月统计', style: TextStyle(
+                    Text('点击任意日期查看当天记录', style: TextStyle(
                       fontSize: 11.5, color: Colors.white.withOpacity(0.4),
                     )),
                   ],
@@ -535,7 +534,7 @@ class StatsPageState extends State<StatsPage> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetCtx) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppDark.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
         ),
@@ -659,7 +658,7 @@ class StatsPageState extends State<StatsPage> {
           _summaryDivider(),
           _summaryNum('总支出', _totalExpense, _expenseColor),
           _summaryDivider(),
-          _summaryNum('结余', _balance, Colors.white),
+          _summaryNum('结余', _balance, AppDark.title),
         ],
       ),
     );
@@ -670,7 +669,7 @@ class StatsPageState extends State<StatsPage> {
       child: Column(
         children: [
           Text(label, style: TextStyle(
-            color: Colors.white.withOpacity(0.55), fontSize: 12,
+            color: AppDark.sub, fontSize: 12,
           )),
           const SizedBox(height: 6),
           Text(
@@ -685,7 +684,7 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _summaryDivider() {
-    return Container(width: 1, height: 34, color: Colors.white.withOpacity(0.12));
+    return Container(width: 1, height: 34, color: AppDark.divider);
   }
 
   // ---------------- 每日趋势 ----------------
@@ -715,13 +714,13 @@ class StatsPageState extends State<StatsPage> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text('每日趋势', style: TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700,
+              Text('每日趋势', style: TextStyle(
+                color: AppDark.title, fontSize: 16, fontWeight: FontWeight.w700,
               )),
               const Spacer(),
               Text(
                 '$trendLabel合计',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                style: TextStyle(color: AppDark.sub, fontSize: 12),
               ),
               const SizedBox(width: 6),
               Text(
@@ -746,7 +745,7 @@ class StatsPageState extends State<StatsPage> {
             height: 200,
             child: !hasData
                 ? Center(child: Text('暂无数据',
-                    style: TextStyle(color: Colors.white.withOpacity(0.35))))
+                    style: TextStyle(color: AppDark.hint)))
                 : _buildBarChart(data, trendColor),
           ),
         ],
@@ -762,16 +761,16 @@ class StatsPageState extends State<StatsPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color : Colors.white.withOpacity(0.07),
+          color: selected ? color : AppDark.cardBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? color : Colors.white.withOpacity(0.10),
+            color: selected ? color : AppDark.cardBorder,
           ),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: selected ? Colors.white : Colors.white.withOpacity(0.6),
+            color: selected ? Colors.white : AppDark.sub,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -812,6 +811,12 @@ class StatsPageState extends State<StatsPage> {
         minY: minY,
         barTouchData: BarTouchData(
           enabled: true,
+          touchCallback: (event, response) {
+            if (event is FlTapUpEvent || event is FlTapDownEvent) {
+              final day = response?.spot?.touchedBarGroup.x;
+              if (day != null) _showDayRecords(day);
+            }
+          },
           touchTooltipData: BarTouchTooltipData(
             tooltipBgColor: const Color(0xFF1E293B).withOpacity(0.95),
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
@@ -842,7 +847,7 @@ class StatsPageState extends State<StatsPage> {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text('$d', style: TextStyle(
-                    color: Colors.white.withOpacity(0.38), fontSize: 10,
+                    color: AppDark.hint, fontSize: 10,
                   )),
                 );
               },
@@ -858,11 +863,11 @@ class StatsPageState extends State<StatsPage> {
                 if (value == 0) return const SizedBox();
                 if (value.abs() >= 1000) {
                   return Text('${(value / 1000).toStringAsFixed(1)}k', style: TextStyle(
-                    color: Colors.white.withOpacity(0.38), fontSize: 10,
+                    color: AppDark.hint, fontSize: 10,
                   ));
                 }
                 return Text('${value.toInt()}', style: TextStyle(
-                  color: Colors.white.withOpacity(0.38), fontSize: 10,
+                  color: AppDark.hint, fontSize: 10,
                 ));
               },
             ),
@@ -876,7 +881,7 @@ class StatsPageState extends State<StatsPage> {
           drawVerticalLine: false,
           horizontalInterval: yInterval,
           getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.white.withOpacity(0.07),
+            color: AppDark.divider,
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -902,6 +907,128 @@ class StatsPageState extends State<StatsPage> {
     );
   }
 
+  /// 展示某一天的全部记录（year/month 不传则取当前选中月）
+  void _showDayRecords(int day, {int? year, int? month}) {
+    final y = year ?? _selectedYear;
+    final m = month ?? _selectedMonth;
+    final dayRecords = _records.where((r) =>
+        r.time.year == y && r.time.month == m && r.time.day == day
+    ).toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppDark.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+              child: Column(
+                children: [
+                  Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Text('$y年$m月$day日',
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      Text('共${dayRecords.length}笔',
+                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Colors.white10),
+            if (dayRecords.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
+                child: Text('当天无记录', style: TextStyle(
+                  color: Colors.white.withOpacity(0.4), fontSize: 14,
+                )),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  itemCount: dayRecords.length,
+                  itemBuilder: (ctx, idx) {
+                    final r = dayRecords[idx];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38, height: 38,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Text(
+                                r.category.isNotEmpty ? r.category.substring(0, 1) : '?',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(r.category, style: const TextStyle(
+                                  color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600,
+                                )),
+                                if (r.note != r.category)
+                                  Text(r.note, style: TextStyle(
+                                    color: Colors.white.withOpacity(0.5), fontSize: 12,
+                                  )),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                r.isExpense ? '-¥${r.amount.toStringAsFixed(2)}' : '+¥${r.amount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: r.isExpense ? _expenseColor : _incomeColor,
+                                  fontSize: 15, fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                '${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}',
+                                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ---------------- 分类排行 ----------------
 
   Widget _buildCategoryRanking() {
@@ -923,13 +1050,13 @@ class StatsPageState extends State<StatsPage> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text('分类排行', style: TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700,
+              Text('分类排行', style: TextStyle(
+                color: AppDark.title, fontSize: 16, fontWeight: FontWeight.w700,
               )),
               const Spacer(),
               Text(
                 '共${sortedCategories.length}类',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                style: TextStyle(color: AppDark.sub, fontSize: 12),
               ),
             ],
           ),
@@ -937,7 +1064,7 @@ class StatsPageState extends State<StatsPage> {
           if (sortedCategories.isEmpty)
             Center(child: Padding(
               padding: const EdgeInsets.all(30),
-              child: Text('暂无数据', style: TextStyle(color: Colors.white.withOpacity(0.35))),
+              child: Text('暂无数据', style: TextStyle(color: AppDark.hint)),
             ))
           else ...[
             // 环形图 + Top4 图例
@@ -970,11 +1097,11 @@ class StatsPageState extends State<StatsPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('总支出', style: TextStyle(
-                            color: Colors.white.withOpacity(0.55), fontSize: 10,
+                            color: AppDark.sub, fontSize: 10,
                           )),
                           const SizedBox(height: 2),
-                          Text('¥${total.toStringAsFixed(0)}', style: const TextStyle(
-                            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800,
+                          Text('¥${total.toStringAsFixed(0)}', style: TextStyle(
+                            color: AppDark.title, fontSize: 16, fontWeight: FontWeight.w800,
                           )),
                         ],
                       ),
@@ -1003,7 +1130,7 @@ class StatsPageState extends State<StatsPage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(e.key, style: TextStyle(
-                                color: Colors.white.withOpacity(0.85),
+                                color: AppDark.body,
                                 fontSize: 13, fontWeight: FontWeight.w500,
                               )),
                             ),
@@ -1022,10 +1149,10 @@ class StatsPageState extends State<StatsPage> {
               ],
             ),
             const SizedBox(height: 20),
-            Divider(color: Colors.white.withOpacity(0.10)),
+            Divider(color: AppDark.divider),
             const SizedBox(height: 14),
             Text('消费明细排行', style: TextStyle(
-              color: Colors.white.withOpacity(0.85), fontSize: 14, fontWeight: FontWeight.w600,
+              color: AppDark.body, fontSize: 14, fontWeight: FontWeight.w600,
             )),
             const SizedBox(height: 14),
             // 详细排行
@@ -1042,14 +1169,14 @@ class StatsPageState extends State<StatsPage> {
                     Container(
                       width: 22, height: 22,
                       decoration: BoxDecoration(
-                        color: index < 3 ? color.withOpacity(0.22) : Colors.white.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Center(
-                        child: Text('${index + 1}', style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w800,
-                          color: index < 3 ? color : Colors.white.withOpacity(0.4),
-                        )),
+                      color: index < 3 ? color.withOpacity(0.22) : AppDark.cardBg,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Center(
+                      child: Text('${index + 1}', style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w800,
+                        color: index < 3 ? color : AppDark.hint,
+                      )),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1057,7 +1184,7 @@ class StatsPageState extends State<StatsPage> {
                     SizedBox(
                       width: 44,
                       child: Text(e.key, style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
+                        color: AppDark.body,
                         fontSize: 13, fontWeight: FontWeight.w500,
                       )),
                     ),
@@ -1070,7 +1197,7 @@ class StatsPageState extends State<StatsPage> {
                           height: 8,
                           child: LinearProgressIndicator(
                             value: percent / 100,
-                            backgroundColor: Colors.white.withOpacity(0.08),
+                            backgroundColor: AppDark.track,
                             valueColor: AlwaysStoppedAnimation<Color>(color),
                           ),
                         ),
@@ -1082,8 +1209,8 @@ class StatsPageState extends State<StatsPage> {
                       width: 60,
                       child: Text(
                         '¥${e.value.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700,
+                        style: TextStyle(
+                          color: AppDark.title, fontSize: 12, fontWeight: FontWeight.w700,
                         ),
                         textAlign: TextAlign.right,
                       ),

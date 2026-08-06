@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'attachment_service.dart';
 
 // 默认账本ID（首次启动自动创建的"日常账本"）
 const String kDefaultLedgerId = 'default_ledger';
@@ -46,6 +47,8 @@ class Record {
   final DateTime time;
   final bool isExpense; // true=支出，false=收入
   final String ledgerId; // 所属账本
+  final List<String> images; // 附件文件名（存于 app 私有 attachments 目录）
+  final bool isInvoice; // 是否标记为发票附件
 
   Record({
     required this.amount,
@@ -54,6 +57,8 @@ class Record {
     required this.time,
     required this.isExpense,
     this.ledgerId = kDefaultLedgerId,
+    this.images = const [],
+    this.isInvoice = false,
   });
 
   // 计算带符号的金额（支出为负，收入为正）
@@ -66,6 +71,8 @@ class Record {
     'time': time.toIso8601String(),
     'isExpense': isExpense ? '1' : '0',
     'ledgerId': ledgerId,
+    'images': images,
+    'isInvoice': isInvoice ? '1' : '0',
   };
 
   factory Record.fromJson(Map<String, dynamic> j) => Record(
@@ -75,6 +82,10 @@ class Record {
     time: DateTime.parse(j['time'] as String),
     isExpense: j['isExpense'] == '1',
     ledgerId: (j['ledgerId'] as String?) ?? kDefaultLedgerId,
+    images: j['images'] is List
+        ? List<String>.from(j['images'] as List)
+        : const <String>[],
+    isInvoice: j['isInvoice'] == '1',
   );
 }
 
@@ -157,11 +168,13 @@ class Storage {
     await saveLedgers(ledgers);
 
     final raw = await getAllRaw();
+    final removed = raw.where((r) => r.ledgerId == id).toList();
+    await AttachmentService.deleteImages(removed.expand((r) => r.images).toList());
     raw.removeWhere((r) => r.ledgerId == id);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, raw.map((e) => _encode(e.toJson())).join('|'));
+    await _saveAllRaw(raw);
 
     // 同步清掉该账本的预算数据
+    final prefs = await SharedPreferences.getInstance();
     await prefs.remove('monthly_budget_$id');
     await prefs.remove('category_budgets_$id');
 
@@ -191,13 +204,34 @@ class Storage {
 
   // ---- 记录读写 ----
 
-  /// 全部账本的原始记录（不过滤）
+  /// 全部账本的原始记录（不过滤）。
+  /// 新版以 JSON 数组存储；旧版以 '|' 分隔的 key=value&... 编码，这里做兼容迁移。
   static Future<List<Record>> getAllRaw() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
     if (raw == null || raw.isEmpty) return [];
-    final list = raw.split('|');
-    return list.map((s) => Record.fromJson(_decode(s))).toList();
+    // 旧版格式（含 '|' 分隔符）兼容：逐条用旧的 &/=/| 解码
+    if (raw.contains('|')) {
+      try {
+        final list = raw.split('|').where((s) => s.isNotEmpty);
+        return list.map((s) => Record.fromJson(_decode(s))).toList();
+      } catch (_) {
+        return [];
+      }
+    }
+    // 新版：JSON 数组
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.map((e) => Record.fromJson(Map<String, dynamic>.from(e))).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// 将完整记录列表写回（统一以 JSON 数组存储）
+  static Future<void> _saveAllRaw(List<Record> list) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode(list.map((e) => e.toJson()).toList()));
   }
 
   /// 指定账本的记录
@@ -222,11 +256,12 @@ class Storage {
       time: r.time,
       isExpense: r.isExpense,
       ledgerId: currentId,
+      images: r.images,
+      isInvoice: r.isInvoice,
     );
     final list = await getAllRaw();
     list.insert(0, tagged);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, list.map((e) => _encode(e.toJson())).join('|'));
+    await _saveAllRaw(list);
   }
 
   /// 按"当前账本过滤后的列表"中的下标删除记录
@@ -239,18 +274,21 @@ class Storage {
       if (raw[i].ledgerId == currentId) filteredIndices.add(i);
     }
     if (index < 0 || index >= filteredIndices.length) return;
-    raw.removeAt(filteredIndices[index]);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, raw.map((e) => _encode(e.toJson())).join('|'));
+    final realIdx = filteredIndices[index];
+    // 联动删除该记录的附件文件
+    await AttachmentService.deleteImages(raw[realIdx].images);
+    raw.removeAt(realIdx);
+    await _saveAllRaw(raw);
   }
 
   /// 清空当前账本的全部记录
   static Future<void> clearCurrentLedger() async {
     final currentId = await getCurrentLedgerId();
     final raw = await getAllRaw();
+    final removed = raw.where((r) => r.ledgerId == currentId).toList();
+    await AttachmentService.deleteImages(removed.expand((r) => r.images).toList());
     raw.removeWhere((r) => r.ledgerId == currentId);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, raw.map((e) => _encode(e.toJson())).join('|'));
+    await _saveAllRaw(raw);
   }
 
   // 自定义分类持久化
@@ -352,7 +390,7 @@ class Storage {
     await prefs.setString('deleted_categories', list.join(','));
   }
 
-  // 全局背景主题索引（0=深空蓝 1=极光紫 2=翡翠绿 3=樱花粉）
+  // 全局背景主题索引（0=简约白 1=深空蓝 2=极光紫 3=翡翠绿 4=樱花粉）
   static Future<int> getBgIndex() async {
     final prefs = await SharedPreferences.getInstance();
     final i = prefs.getInt('stats_bg_theme') ?? 0;
@@ -386,10 +424,7 @@ class Storage {
     await prefs.setInt('reminder_minutes', minutes);
   }
 
-  static String _encode(Map<String, dynamic> j) {
-    return j.entries.map((e) => '${e.key}=${e.value}').join('&');
-  }
-
+  // 旧版记录编码的兼容解码（新版已改为 JSON 数组，见 getAllRaw）
   static Map<String, dynamic> _decode(String s) {
     final map = <String, dynamic>{};
     for (final part in s.split('&')) {

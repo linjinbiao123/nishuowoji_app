@@ -70,9 +70,11 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
     final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Center(child: Text(msg,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
+          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: theme.base[1].withOpacity(0.96),
+      backgroundColor: AppThemeMode.isLight
+          ? const Color(0xFF323232)
+          : theme.base[1].withOpacity(0.96),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -100,7 +102,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
             children: [
               Center(
                 child: Container(width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2),
+                  decoration: BoxDecoration(color: AppDark.divider,
                     borderRadius: BorderRadius.circular(2))),
               ),
               const SizedBox(height: 16),
@@ -109,7 +111,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
                   Icon(Icons.workspace_premium, color: theme.accent, size: 26),
                   const SizedBox(width: 10),
                   Text('激活权限', style: TextStyle(
-                    fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)),
+                    fontSize: 19, fontWeight: FontWeight.w800, color: AppDark.title)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -128,7 +130,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
+                    color: AppDark.cardBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: theme.accent.withOpacity(0.3)),
                   ),
@@ -137,7 +139,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
                       Expanded(
                         child: Text(_deviceCode.isEmpty ? '读取中…' : _deviceCode,
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
-                                color: Colors.white, letterSpacing: 1)),
+                                color: AppDark.title, letterSpacing: 1)),
                       ),
                       Icon(Icons.copy, size: 17, color: theme.accent),
                       const SizedBox(width: 6),
@@ -153,19 +155,19 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
+                  color: AppDark.cardBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppDark.divider),
                 ),
                 child: TextField(
                   controller: _cardCtrl,
-                  style: const TextStyle(fontSize: 14, color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 14, color: AppDark.title),
+                  decoration: InputDecoration(
                     hintText: '粘贴卡密',
                     hintStyle: TextStyle(color: AppDark.hint, fontSize: 14),
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 13),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
               ),
@@ -222,8 +224,8 @@ class VipLockScreen extends StatelessWidget {
                   child: Icon(Icons.lock_outline, size: 38, color: theme.accent),
                 ),
                 const SizedBox(height: 20),
-                Text('「$feature」需要权限', style: const TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+                Text('「$feature」需要权限', style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w700, color: AppDark.title)),
                 const SizedBox(height: 8),
                 Text('激活权限即可使用多账本、数据导出、分类预算等全部功能',
                     textAlign: TextAlign.center,

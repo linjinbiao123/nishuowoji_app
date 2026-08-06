@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/home_page.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_bg.dart';
 import 'services/storage.dart';
 import 'services/notification_service.dart';
 
@@ -22,6 +23,10 @@ void main() async {
       minutes % 60,
     );
   }
+  // 初始化全局明暗主题状态（默认浅色主题在 AppBgTheme.all[0]）
+  final bgIndex = await Storage.getBgIndex();
+  AppThemeMode.isLight = AppBgTheme.all[bgIndex % AppBgTheme.all.length].isLight;
+
   runApp(const NishuowojiApp());
 }
 

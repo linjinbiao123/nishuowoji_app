@@ -433,7 +433,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
   Widget build(BuildContext context) {
     final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: AppThemeMode.isLight ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: AppBackground(
         theme: theme,
         child: Scaffold(
@@ -478,12 +478,12 @@ class _DataStatsPageState extends State<DataStatsPage> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Colors.white),
+            icon: Icon(Icons.arrow_back_ios_new, size: 18, color: AppDark.title),
             onPressed: () => Navigator.pop(context),
           ),
-          const Text('数据统计', style: TextStyle(
+          Text('数据统计', style: TextStyle(
             fontSize: 19, fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: AppDark.title,
           )),
         ],
       ),
@@ -495,7 +495,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.07),
+        color: AppDark.cardBg,
         borderRadius: BorderRadius.circular(13),
         border: Border.all(color: AppDark.divider),
       ),
@@ -555,9 +555,9 @@ class _DataStatsPageState extends State<DataStatsPage> {
                               position: Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero).animate(anim),
                               child: child,
                             )),
-                        child: Text(_periodLabel, key: ValueKey(_periodLabel), style: const TextStyle(
+                        child: Text(_periodLabel, key: ValueKey(_periodLabel), style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AppDark.title,
                         )),
                       ),
                     ),
@@ -580,12 +580,12 @@ class _DataStatsPageState extends State<DataStatsPage> {
       child: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.07),
+          color: AppDark.cardBg,
           shape: BoxShape.circle,
           border: Border.all(color: AppDark.divider),
         ),
         child: Icon(icon, size: 20,
-          color: enabled ? Colors.white : AppDark.hint.withOpacity(0.6)),
+          color: enabled ? AppDark.title : AppDark.hint.withOpacity(0.6)),
       ),
     );
   }
@@ -641,7 +641,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
               Container(width: 4, height: 16, decoration: BoxDecoration(
                 color: accent, borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+              Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDark.title)),
               const SizedBox(width: 6),
               Icon(icon, size: 15, color: AppDark.hint),
               const Spacer(),
@@ -726,10 +726,10 @@ class _DataStatsPageState extends State<DataStatsPage> {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('总支出', style: TextStyle(color: AppDark.sub, fontSize: 10)),
+                          Text('总支出', style: TextStyle(color: AppDark.sub, fontSize: 10)),
                           const SizedBox(height: 2),
-                          Text('¥${total.toStringAsFixed(0)}', style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                          Text('¥${total.toStringAsFixed(0)}', style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w800, color: AppDark.title)),
                         ],
                       ),
                     ],
@@ -762,9 +762,9 @@ class _DataStatsPageState extends State<DataStatsPage> {
                               Container(width: 9, height: 9, decoration: BoxDecoration(
                                 color: color, borderRadius: BorderRadius.circular(3))),
                               const SizedBox(width: 7),
-                              Expanded(child: Text(e.key, style: const TextStyle(
+                              Expanded(child: Text(e.key, style: TextStyle(
                                 fontSize: 12.5, fontWeight: FontWeight.w500, color: AppDark.body))),
-                              Text('¥${e.value.toStringAsFixed(0)}', style: const TextStyle(
+                              Text('¥${e.value.toStringAsFixed(0)}', style: TextStyle(
                                 fontSize: 11.5, color: AppDark.sub)),
                               const SizedBox(width: 6),
                               Text('${percent.toStringAsFixed(0)}%', style: TextStyle(
@@ -856,7 +856,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                           return Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(series[i].label, style: TextStyle(
-                              color: Colors.white.withOpacity(0.38), fontSize: 9.5)),
+                              color: AppDark.hint, fontSize: 9.5)),
                           );
                         },
                       ),
@@ -904,7 +904,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
       title: title,
       icon: Icons.receipt_long,
       accent: const Color(0xFF10B981),
-      trailing: Text('${list.length} 笔', style: const TextStyle(
+      trailing: Text('${list.length} 笔', style: TextStyle(
         fontSize: 12, color: AppDark.sub)),
       child: list.isEmpty
           ? _empty('没有符合条件的记录')
@@ -932,14 +932,14 @@ class _DataStatsPageState extends State<DataStatsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(r.category, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Colors.white)),
+                Text(r.category, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppDark.title)),
                 if (r.note.isNotEmpty)
-                  Text(r.note, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(
+                  Text(r.note, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(
                     fontSize: 11.5, color: AppDark.hint)),
               ],
             ),
           ),
-          Text(timeStr, style: const TextStyle(fontSize: 11, color: AppDark.hint)),
+          Text(timeStr, style: TextStyle(fontSize: 11, color: AppDark.hint)),
           const SizedBox(width: 10),
           Text('${r.isExpense ? '-' : '+'}¥${r.amount.toStringAsFixed(2)}', style: TextStyle(
             fontSize: 14, fontWeight: FontWeight.w700,
@@ -957,7 +957,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
           children: [
             Icon(Icons.inbox_outlined, size: 38, color: AppDark.hint.withOpacity(0.7)),
             const SizedBox(height: 8),
-            Text(text, style: const TextStyle(fontSize: 12.5, color: AppDark.hint)),
+            Text(text, style: TextStyle(fontSize: 12.5, color: AppDark.hint)),
           ],
         ),
       ),
@@ -969,11 +969,11 @@ class _DataStatsPageState extends State<DataStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.file_download_outlined, size: 17, color: Color(0xFF0984E3)),
-            SizedBox(width: 6),
-            Text('数据导出', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+            const Icon(Icons.file_download_outlined, size: 17, color: Color(0xFF0984E3)),
+            const SizedBox(width: 6),
+            Text('数据导出', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppDark.title)),
           ],
         ),
         const SizedBox(height: 12),
@@ -982,7 +982,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
+              color: AppDark.cardBg,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFF0984E3).withOpacity(0.35)),
             ),
@@ -994,17 +994,17 @@ class _DataStatsPageState extends State<DataStatsPage> {
                   child: const Icon(Icons.file_download_outlined, size: 20, color: Color(0xFF0984E3)),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('导出数据', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white)),
-                      SizedBox(height: 2),
+                      Text('导出数据', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppDark.title)),
+                      const SizedBox(height: 2),
                       Text('导出账单为 CSV，可选择单个账本或全部', style: TextStyle(fontSize: 11.5, color: AppDark.sub)),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, size: 19, color: AppDark.hint),
+                Icon(Icons.chevron_right, size: 19, color: AppDark.hint),
               ],
             ),
           ),
@@ -1040,7 +1040,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
             children: [
               const Text('选择导出范围', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
               const SizedBox(height: 4),
-              const Text('可导出单个账本，或一次性导出全部账本', style: TextStyle(
+              Text('可导出单个账本，或一次性导出全部账本', style: TextStyle(
                 fontSize: 12, color: AppDark.sub)),
               const SizedBox(height: 16),
               // 全部账本
@@ -1056,7 +1056,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                 },
               ),
               const SizedBox(height: 8),
-              const Divider(color: AppDark.divider, height: 1),
+              Divider(color: AppDark.divider, height: 1),
               const SizedBox(height: 8),
               ...ledgers.map((l) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1095,7 +1095,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
             ),
             const SizedBox(width: 10),
             Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white))),
-            const Icon(Icons.file_download_outlined, size: 17, color: AppDark.hint),
+            Icon(Icons.file_download_outlined, size: 17, color: AppDark.hint),
           ],
         ),
       ),

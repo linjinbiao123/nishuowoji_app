@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
+import '../services/attachment_service.dart';
+import '../widgets/attachment_image.dart';
 
 class AddRecordSheet extends StatefulWidget {
-  const AddRecordSheet({super.key});
+  /// 外部传入的初始附件文件名（例如从首页拍照后带入）。
+  final List<String>? initialImages;
+
+  const AddRecordSheet({super.key, this.initialImages});
 
   @override
   State<AddRecordSheet> createState() => _AddRecordSheetState();
@@ -23,6 +29,13 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   String? _deletingCat;
   int _bgIndex = 0; // 全局深色背景主题索引
 
+  // 附件（图片 / 发票）
+  final ImagePicker _picker = ImagePicker();
+  List<String> _pendingImages = []; // 已保存到附件目录的文件名
+  String _attachDir = '';
+  bool _isInvoice = false;
+  bool _saved = false;
+
   /// 与全局分类注册表保持同步（内置 + 已删除过滤）
   List<CategoryDef> get _categories {
     final list = _isExpense ? Categories.builtinExpense : Categories.builtinIncome;
@@ -35,10 +48,18 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   @override
   void initState() {
     super.initState();
+    // 带入外部传入的初始图片
+    if (widget.initialImages != null && widget.initialImages!.isNotEmpty) {
+      _pendingImages.addAll(widget.initialImages!);
+    }
     _loadCustomCategories();
     _loadDeletedCategories();
     Storage.getBgIndex().then((i) {
       if (mounted) setState(() => _bgIndex = i);
+    });
+    // 预解析附件目录，供缩略图同步显示
+    AttachmentService.dirPath().then((d) {
+      if (mounted) setState(() => _attachDir = d);
     });
     // 金额框聚焦 => 键盘处于数字模式
     _amountFocus.addListener(() {
@@ -56,7 +77,29 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
     _noteCtrl.dispose();
     _amountFocus.dispose();
     _noteFocus.dispose();
+    // 未保存就关闭弹窗时，清理已落盘的临时附件，避免孤儿文件
+    if (!_saved) AttachmentService.deleteImages(_pendingImages);
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource src) async {
+    try {
+      final xfile = await _picker.pickImage(source: src, imageQuality: 80);
+      if (xfile != null) {
+        final name = await AttachmentService.saveImage(xfile.path);
+        setState(() => _pendingImages.add(name));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('选择图片失败：$e')),
+      );
+    }
+  }
+
+  void _removeImage(String name) {
+    setState(() => _pendingImages.remove(name));
+    AttachmentService.deleteImages([name]);
   }
 
   Future<void> _loadDeletedCategories() async {
@@ -78,12 +121,15 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
       return;
     }
     final note = _noteCtrl.text.trim();
+    _saved = true;
     final r = Record(
       amount: amount,
       category: _category,
       note: note.isEmpty ? _category : note,
       time: DateTime.now(),
       isExpense: _isExpense,
+      images: List.from(_pendingImages),
+      isInvoice: _isInvoice,
     );
     await Storage.add(r);
     if (!mounted) return;
@@ -111,7 +157,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
               Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: AppDark.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -120,13 +166,13 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('手动记账', style: TextStyle(
+                  Text('手动记账', style: TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: AppDark.title,
                   )),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.close, color: AppDark.sub, size: 22),
+                    child: Icon(Icons.close, color: AppDark.sub, size: 22),
                   ),
                 ],
               ),
@@ -135,7 +181,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: AppDark.cardBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppDark.divider),
                 ),
@@ -155,7 +201,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                           fontSize: 24, fontWeight: FontWeight.w700,
                           color: _isExpense ? AppColors.danger : AppColors.success,
                         ),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: '0.00',
                           hintStyle: TextStyle(color: AppDark.hint, fontSize: 24, fontWeight: FontWeight.w700),
                           border: InputBorder.none,
@@ -172,7 +218,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: AppDark.cardBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppDark.divider),
                 ),
@@ -193,8 +239,8 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                       });
                     }
                   },
-                  style: const TextStyle(fontSize: 15, color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 15, color: AppDark.title),
+                  decoration: InputDecoration(
                     hintText: '备注（可选）',
                     hintStyle: TextStyle(color: AppDark.hint, fontSize: 15),
                     border: InputBorder.none,
@@ -204,13 +250,135 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                 ),
               ),
               const SizedBox(height: 12),
+              // 附件（图片 / 发票）
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppDark.cardBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppDark.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.photo_library_outlined, size: 16, color: AppDark.sub),
+                        const SizedBox(width: 6),
+                        Text('图片 / 发票', style: TextStyle(color: AppDark.title, fontSize: 13)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => _pickImage(ImageSource.camera),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppDark.cardBg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppDark.divider),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.camera_alt, size: 14, color: AppDark.title),
+                                const SizedBox(width: 4),
+                                Text('拍照', style: TextStyle(color: AppDark.title, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _pickImage(ImageSource.gallery),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppDark.cardBg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppDark.divider),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.photo_library, size: 14, color: AppDark.title),
+                                const SizedBox(width: 4),
+                                Text('相册', style: TextStyle(color: AppDark.title, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_pendingImages.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _pendingImages.map((name) {
+                          final path = _attachDir.isNotEmpty
+                              ? '$_attachDir/$name'
+                              : name;
+                          return GestureDetector(
+                            onTap: () => _removeImage(name),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: AttachmentImage(path: path, width: 56, height: 56),
+                                ),
+                                Positioned(
+                                  top: 2,
+                                  right: 2,
+                                  child: Container(
+                                    width: 18,
+                                    height: 18,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close, color: Colors.white, size: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 6),
+                      Text('点击缩略图可移除', style: TextStyle(color: AppDark.hint, fontSize: 11)),
+                    ],
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: () => setState(() => _isInvoice = !_isInvoice),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isInvoice ? Icons.check_box : Icons.check_box_outline_blank,
+                            size: 16,
+                            color: _isInvoice ? const Color(0xFFFFB020) : AppDark.sub,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '标记为发票',
+                            style: TextStyle(
+                              color: _isInvoice ? const Color(0xFFFFB020) : AppDark.sub,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               // 日期 + 类型 + 分类
               Row(
                 children: [
                   // 左边日期
                   Text(
                     '${DateTime.now().month}月${DateTime.now().day}日',
-                    style: const TextStyle(color: AppDark.hint, fontSize: 13),
+                    style: TextStyle(color: AppDark.hint, fontSize: 13),
                   ),
                   const Spacer(),
                   // 支出/收入切换
@@ -254,7 +422,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: AppDark.cardBg,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppDark.divider),
                       ),
@@ -267,12 +435,12 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                             color: _getCategoryColor(_category),
                           ),
                           const SizedBox(width: 6),
-                          Text(_category, style: const TextStyle(
-                            color: Colors.white,
+                          Text(_category, style: TextStyle(
+                            color: AppDark.title,
                             fontWeight: FontWeight.w600, fontSize: 13,
                           )),
                           const SizedBox(width: 2),
-                          const Icon(Icons.arrow_drop_down, color: AppDark.sub, size: 18),
+                          Icon(Icons.arrow_drop_down, color: AppDark.sub, size: 18),
                         ],
                       ),
                     ),
@@ -292,7 +460,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('保存', style: TextStyle(
+                  child: Text('保存', style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16,
                   )),
                 ),
@@ -322,7 +490,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('选择分类', style: TextStyle(
+              Text('选择分类', style: TextStyle(
                 fontSize: 18, fontWeight: FontWeight.w700,
                 color: Colors.white,
               )),
@@ -421,11 +589,11 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppDark.divider),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.add, color: AppDark.sub, size: 18),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text('自定义', style: TextStyle(color: AppDark.sub)),
                         ],
                       ),
@@ -447,14 +615,14 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppDark.surface,
-        title: const Text('自定义分类', style: TextStyle(color: Colors.white)),
+        title: Text('自定义分类', style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: controller,
           autofocus: true,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: '输入分类名称',
-            hintStyle: const TextStyle(color: AppDark.hint),
+            hintStyle: TextStyle(color: AppDark.hint),
             filled: true,
             fillColor: Colors.white.withOpacity(0.08),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -463,7 +631,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消', style: TextStyle(color: AppDark.sub)),
+            child: Text('取消', style: TextStyle(color: AppDark.sub)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -480,7 +648,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            child: const Text('添加', style: TextStyle(color: Colors.white)),
+            child: Text('添加', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

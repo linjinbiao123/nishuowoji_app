@@ -2,14 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:record/record.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/categories.dart';
+import '../services/attachment_service.dart';
 import '../services/vip_service.dart';
 import '../services/asr_service.dart';
 import '../services/voice_parser.dart';
 import '../widgets/vip_widgets.dart';
+import '../widgets/image_viewer.dart';
+import '../widgets/attachment_image.dart';
 import 'add_record_page.dart';
 import 'voice_record_dialog.dart';
 import 'stats_page.dart';
@@ -41,6 +45,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   // 长按麦克风直接录音
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecordingVoice = false;
+  final ImagePicker _picker = ImagePicker();
+  String _attachDir = ''; // 附件目录，用于首页图片预览
 
   // 账本可选颜色
   static const _ledgerPalette = [
@@ -68,6 +74,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _fabAnimCtrl.forward();
     _loadData();
     _loadCustomCategories();
+    // 预取附件目录，首页图片预览用
+    AttachmentService.dirPath().then((d) {
+      if (mounted) setState(() => _attachDir = d);
+    });
   }
 
   @override
@@ -218,7 +228,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Center(child: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 13))),
+      content: Center(child: Text(msg, style: TextStyle(color: Colors.white, fontSize: 13))),
       behavior: SnackBarBehavior.floating,
       backgroundColor: const Color(0xFF10B981).withOpacity(0.95),
       elevation: 0,
@@ -252,7 +262,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: AppThemeMode.isLight ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: theme.base[0],
         body: AppBackground(
@@ -274,8 +284,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+            color: AppDark.cardBg,
+            border: Border(top: BorderSide(color: AppDark.cardBorder)),
           ),
           child: BottomNavigationBar(
             currentIndex: _tab,
@@ -290,8 +300,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.transparent,
-            selectedItemColor: Colors.white,
-            unselectedItemColor: Colors.white.withOpacity(0.45),
+            selectedItemColor: theme.accent,
+            unselectedItemColor: AppDark.sub,
             selectedFontSize: 11,
             unselectedFontSize: 11,
             elevation: 0,
@@ -341,7 +351,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       }
                     },
                     backgroundColor: theme.accent,
-                    child: const Icon(Icons.add, color: Colors.white, size: 28),
+                    child: Icon(Icons.add, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 16),
                   GestureDetector(
@@ -359,6 +369,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         size: 24,
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 16),
+                  FloatingActionButton(
+                    heroTag: 'camera',
+                    onPressed: () => _takePhoto(),
+                    backgroundColor: theme.accent,
+                    child: Icon(Icons.camera_alt, color: Colors.white, size: 24),
                   ),
                 ],
               ),
@@ -381,17 +398,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 shaderCallback: (bounds) => const LinearGradient(
                   colors: [Color(0xFF10B981), Color(0xFF059669)],
                 ).createShader(bounds),
-                child: const Icon(Icons.book, color: Colors.white, size: 28),
+                child: Icon(Icons.book, color: Colors.white, size: 28),
               ),
               const SizedBox(width: 8),
-              const Text('记账', style: TextStyle(
+              Text('记账', style: TextStyle(
                 fontSize: 24, fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppDark.title,
               )),
               const Spacer(),
               _buildLedgerChip(),
               IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                icon: Icon(Icons.notifications_none, color: AppDark.title),
                 onPressed: () {},
               ),
             ],
@@ -423,7 +440,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           _buildDivider(),
           _buildSummaryItem('总支出', _monthExpense, const Color(0xFFFB7185), true),
           _buildDivider(),
-          _buildSummaryItem('结余', _monthBalance, Colors.white, false),
+          _buildSummaryItem('结余', _monthBalance, AppDark.title, false),
         ],
       ),
     );
@@ -434,7 +451,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(color: AppDark.sub, fontSize: 12)),
+          Text(label, style: TextStyle(color: AppDark.sub, fontSize: 12)),
           const SizedBox(height: 8),
           Text(
             '$prefix¥${amount.abs().toStringAsFixed(2)}',
@@ -448,7 +465,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildDivider() {
-    return Container(width: 1, height: 40, color: Colors.white.withOpacity(0.12));
+    return Container(width: 1, height: 40, color: AppDark.divider);
   }
 
   Widget _buildLedgerChip() {
@@ -513,16 +530,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 children: [
                   Row(
                     children: [
-                      const Text('账本管理', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                      Text('账本管理', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
                       const Spacer(),
                       GestureDetector(
                         onTap: () => Navigator.pop(ctx),
-                        child: const Icon(Icons.close, color: AppDark.sub, size: 22),
+                        child: Icon(Icons.close, color: AppDark.sub, size: 22),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     '可创建多个账本，工作生活分开记',
                     style: TextStyle(fontSize: 12, color: AppDark.hint),
                   ),
@@ -560,9 +577,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(l.name, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                                    Text(l.name, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white)),
                                     const SizedBox(height: 2),
-                                    Text('${counts[l.id] ?? 0} 笔记录', style: const TextStyle(fontSize: 11.5, color: AppDark.hint)),
+                                    Text('${counts[l.id] ?? 0} 笔记录', style: TextStyle(fontSize: 11.5, color: AppDark.hint)),
                                   ],
                                 ),
                               ),
@@ -603,13 +620,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                 child: Container(
                                   width: 32, height: 32,
                                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(9), border: Border.all(color: AppDark.divider)),
-                                  child: const Icon(Icons.edit_outlined, size: 15, color: AppDark.sub),
+                                  child: Icon(Icons.edit_outlined, size: 15, color: AppDark.sub),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               isCurrent
                                   ? Icon(Icons.check_circle, size: 22, color: color)
-                                  : const Icon(Icons.radio_button_unchecked, size: 22, color: AppDark.hint),
+                                  : Icon(Icons.radio_button_unchecked, size: 22, color: AppDark.hint),
                             ],
                           ),
                         ),
@@ -689,12 +706,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Container(
                 width: 52, height: 52,
                 decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 26),
+                child: Icon(Icons.delete_outline, color: AppColors.danger, size: 26),
               ),
               const SizedBox(height: 14),
-              Text('删除「${l.name}」', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+              Text('删除「${l.name}」', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
               const SizedBox(height: 8),
-              const Text('该账本下的所有记录将一并删除，\n删除后无法恢复！',
+              Text('该账本下的所有记录将一并删除，\n删除后无法恢复！',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppDark.sub, fontSize: 13, height: 1.5)),
               const SizedBox(height: 20),
@@ -759,20 +776,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       child: Icon(Icons.menu_book, size: 19, color: Color(selectedColor)),
                     ),
                     const SizedBox(width: 10),
-                    Text(isEdit ? '编辑账本' : '新建账本', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+                    Text(isEdit ? '编辑账本' : '新建账本', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
                   ],
                 ),
                 const SizedBox(height: 18),
-                const Text('账本名称', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.sub)),
+                Text('账本名称', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.sub)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: nameCtrl,
                   autofocus: !isEdit,
                   maxLength: 10,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                   decoration: InputDecoration(
                     hintText: '如：旅行基金、宝宝账本',
-                    hintStyle: const TextStyle(color: AppDark.hint, fontSize: 14),
+                    hintStyle: TextStyle(color: AppDark.hint, fontSize: 14),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.08),
                     counterText: '',
@@ -780,7 +797,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('账本颜色', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.sub)),
+                Text('账本颜色', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppDark.sub)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 10,
@@ -800,7 +817,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             BoxShadow(color: Color(c).withOpacity(selected ? 0.5 : 0.2), blurRadius: selected ? 8 : 3),
                           ],
                         ),
-                        child: selected ? const Icon(Icons.check, size: 17, color: Colors.white) : null,
+                        child: selected ? Icon(Icons.check, size: 17, color: Colors.white) : null,
                       ),
                     );
                   }).toList(),
@@ -817,7 +834,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         child: Container(
                           width: 44, height: 44,
                           decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+                          child: Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -911,7 +928,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         children: [
           Row(
             children: [
-              const Text('本月预算', style: TextStyle(
+              Text('本月预算', style: TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white,
               )),
               const Spacer(),
@@ -940,11 +957,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.warning_amber, size: 14, color: AppColors.danger),
+                Icon(Icons.warning_amber, size: 14, color: AppColors.danger),
                 const SizedBox(width: 4),
                 Text(
                   '已超支 ¥${(budgetExp - _monthlyBudget).toStringAsFixed(0)}，请注意控制消费',
-                  style: const TextStyle(fontSize: 12, color: AppColors.danger, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 12, color: AppColors.danger, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -967,7 +984,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 const SizedBox(width: 4),
                 Text(
                   '平均每日 ¥${rawAllowance.toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppDark.sub),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppDark.sub),
                 ),
               ],
             ),
@@ -975,7 +992,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               const SizedBox(height: 4),
               Text(
                 '已使用 ${(percent * 100).toStringAsFixed(0)}%，接近预算上限',
-                style: const TextStyle(fontSize: 12, color: Color(0xFFFF9F43), fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 12, color: Color(0xFFFF9F43), fontWeight: FontWeight.w500),
               ),
             ],
           ],
@@ -995,7 +1012,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('分类预算', style: TextStyle(
+          Text('分类预算', style: TextStyle(
             fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white,
           )),
           const SizedBox(height: 12),
@@ -1020,7 +1037,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       Icon(_categoryIcons[name] ?? Icons.label, size: 14,
                         color: _categoryColors[name] ?? AppColors.textHint),
                       const SizedBox(width: 5),
-                      Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white)),
+                      Text(name, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white)),
                       const Spacer(),
                       Text(
                         '¥${spent.toStringAsFixed(0)} / ¥${budget.toStringAsFixed(0)}',
@@ -1047,7 +1064,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     const SizedBox(height: 4),
                     Text(
                       '已超支 ¥${(spent - budget).toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 11, color: AppColors.danger, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 11, color: AppColors.danger, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ],
@@ -1068,18 +1085,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             children: [
               Icon(Icons.today, color: AppColors.accent, size: 20),
               const SizedBox(width: 8),
-              Text(_formatDate(DateTime.now()), style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white,
+              Text(_formatDate(DateTime.now()), style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: AppDark.title,
               )),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: AppDark.divider,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('$_todayCount笔', style: const TextStyle(
-                  color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600,
+                child: Text('$_todayCount笔', style: TextStyle(
+                  color: AppDark.title, fontSize: 12, fontWeight: FontWeight.w600,
                 )),
               ),
             ],
@@ -1093,8 +1110,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   children: [
                     Icon(Icons.receipt_long, size: 48, color: AppDark.hint),
                     const SizedBox(height: 12),
-                    const Text('今天还没有记录', style: TextStyle(
-                      color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600,
+                    Text('今天还没有记录', style: TextStyle(
+                      color: AppDark.title, fontSize: 14, fontWeight: FontWeight.w600,
                     )),
                     const SizedBox(height: 4),
                     Text('点击右下角麦克风按钮语音记账', style: TextStyle(
@@ -1109,7 +1126,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: todayRecords.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: AppDark.divider),
+              separatorBuilder: (_, __) => Divider(height: 1, color: AppDark.divider),
               itemBuilder: (context, index) {
                 final r = todayRecords[index];
                 final icon = _categoryIcons[r.category] ?? Icons.receipt;
@@ -1143,12 +1160,52 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(r.category, style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 15, color: Colors.white,
+                Text(r.category, style: TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 15, color: AppDark.title,
                 )),
                 Text(r.note, style: TextStyle(
                   color: AppDark.sub, fontSize: 12,
                 )),
+                if (r.images.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _showImageViewer(r.images),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ...r.images.take(3).map((img) => Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: AttachmentImage(
+                              path: _attachDir.isNotEmpty
+                                  ? '$_attachDir/$img'
+                                  : img,
+                              width: 40, height: 40,
+                            ),
+                          ),
+                        )).toList(),
+                        if (r.images.length > 3)
+                          Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.black45,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '+${r.images.length - 3}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1173,6 +1230,48 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
+  /// 首页记录卡片点击图片放大预览；支持多张左右滑动。
+  void _showImageViewer(List<String> names, {int initialIndex = 0}) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (ctx) => ImageViewerDialog(
+        names: names,
+        attachDir: _attachDir,
+        initialIndex: initialIndex,
+      ),
+    );
+  }
+
+  /// 底部拍照按钮：拍照后把图片带入手动记账弹窗。
+  Future<void> _takePhoto() async {
+    try {
+      final xfile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+      if (xfile == null) return;
+      final name = await AttachmentService.saveImage(xfile.path);
+      if (!mounted) return;
+      final result = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => AddRecordSheet(initialImages: [name]),
+      );
+      if (result == true) {
+        _loadData();
+        _statsKey.currentState?.refresh();
+        _budgetKey.currentState?.refresh();
+      } else {
+        // 用户未保存，清理刚才拍的临时附件
+        await AttachmentService.deleteImages([name]);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('拍照失败：$e')),
+      );
+    }
+  }
+
   void _deleteRecord(Record r) async {
     final records = await Storage.getAll();
     final index = records.indexWhere((e) => e.time.millisecondsSinceEpoch == r.time.millisecondsSinceEpoch);
@@ -1184,12 +1283,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  void _editRecord(Record r) {
+  void _editRecord(Record r) async {
     final amountController = TextEditingController(text: r.amount.toStringAsFixed(2));
     final noteController = TextEditingController(text: r.note);
     String selectedCategory = r.category;
     bool isExpense = r.isExpense;
     bool _showAllCategories = false;
+    final attachDir = await AttachmentService.dirPath();
 
     showDialog(
       context: context,
@@ -1204,17 +1304,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white.withOpacity(0.10)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('编辑记录', style: TextStyle(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('编辑记录', style: TextStyle(
                   fontSize: 18, fontWeight: FontWeight.w700,
                   color: Colors.white,
                 )),
                 const SizedBox(height: 20),
                 // 金额
-                const Text('金额', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                Text('金额', style: TextStyle(color: AppDark.sub, fontSize: 12)),
                 const SizedBox(height: 4),
                 TextField(
                   controller: amountController,
@@ -1286,13 +1387,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 // 分类
                 Row(
                   children: [
-                    const Text('分类', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                    Text('分类', style: TextStyle(color: AppDark.sub, fontSize: 12)),
                     const Spacer(),
                     GestureDetector(
                       onTap: () => setDialogState(() => _showAllCategories = !_showAllCategories),
                       child: Row(
                         children: [
-                          Text(_showAllCategories ? '收起' : '更多', style: const TextStyle(
+                          Text(_showAllCategories ? '收起' : '更多', style: TextStyle(
                             color: AppColors.primary, fontSize: 12,
                           )),
                           Icon(_showAllCategories ? Icons.expand_less : Icons.expand_more,
@@ -1349,7 +1450,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppDark.divider, style: BorderStyle.solid),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.add, size: 14, color: AppDark.sub),
@@ -1365,14 +1466,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
                 const SizedBox(height: 16),
                 // 备注
-                const Text('备注', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                Text('备注', style: TextStyle(color: AppDark.sub, fontSize: 12)),
                 const SizedBox(height: 4),
                 TextField(
                   controller: noteController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: '输入备注',
-                    hintStyle: const TextStyle(color: AppDark.hint),
+                    hintStyle: TextStyle(color: AppDark.hint),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.08),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -1380,6 +1481,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ),
                 ),
                 const SizedBox(height: 20),
+                // 附件（只读预览）
+                if (r.images.isNotEmpty) ...[
+                  Text('附件', style: TextStyle(color: AppDark.sub, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: r.images.map((img) => ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: AttachmentImage(
+                        path: attachDir.isNotEmpty ? '$attachDir/$img' : img,
+                        width: 52, height: 52,
+                      ),
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 // 按钮
                 Row(
                   children: [
@@ -1395,7 +1512,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('删除'),
+                        child: Text('删除'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1414,7 +1531,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('保存', style: TextStyle(color: Colors.white)),
+                        child: Text('保存', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                   ],
@@ -1424,7 +1541,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _updateRecord(Record oldRecord, double newAmount, String newCategory, String newNote, bool newIsExpense) async {
@@ -1438,6 +1556,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         note: newNote.isEmpty ? newCategory : newNote,
         time: oldRecord.time,
         isExpense: newIsExpense,
+        images: oldRecord.images,
+        isInvoice: oldRecord.isInvoice,
       );
       await Storage.add(newRecord);
       _loadData();
@@ -1452,14 +1572,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppDark.surface,
-        title: const Text('自定义分类', style: TextStyle(color: Colors.white)),
+        title: Text('自定义分类', style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: '输入分类名称',
-            hintStyle: const TextStyle(color: AppDark.hint),
+            hintStyle: TextStyle(color: AppDark.hint),
             filled: true,
             fillColor: Colors.white.withOpacity(0.08),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -1468,7 +1588,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消', style: TextStyle(color: AppDark.sub)),
+            child: Text('取消', style: TextStyle(color: AppDark.sub)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1483,7 +1603,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('添加', style: TextStyle(color: Colors.white)),
+            child: Text('添加', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
