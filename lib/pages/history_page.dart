@@ -5,6 +5,7 @@ import '../services/storage.dart';
 import '../widgets/attachment_image.dart';
 import '../widgets/image_viewer.dart';
 import '../services/attachment_service.dart';
+import 'receipt_gallery_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -86,6 +87,18 @@ class HistoryPageState extends State<HistoryPage> {
         _categoryColors[name] = const Color(0xFF95A5A6);
       }
     });
+  }
+
+  /// 当前账本下的附件图片总张数（用于「票据」入口角标）
+  int get _photoCount =>
+      _allRecords.fold<int>(0, (sum, r) => sum + r.images.length);
+
+  /// 打开票据相册：按年月分组集中翻阅所有带图片的记录
+  void _openReceiptGallery() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ReceiptGalleryPage()),
+    ).then((_) => _loadData());
   }
 
   void _changeMonth(int delta) {
@@ -257,6 +270,33 @@ class HistoryPageState extends State<HistoryPage> {
                     ),
                   ),
                   const Spacer(),
+                  // 票据相册入口（集中查看所有带图片的记录）
+                  GestureDetector(
+                    onTap: _openReceiptGallery,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppDark.cardBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppDark.cardBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_outlined, size: 14, color: AppDark.sub),
+                          const SizedBox(width: 4),
+                          Text(
+                            _photoCount > 0 ? '票据 $_photoCount' : '票据',
+                            style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w500,
+                              color: AppDark.sub,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (!_isYearly) const SizedBox(width: 8),
                   // 日历切换按钮（仅月度显示）
                   if (!_isYearly)
                     GestureDetector(

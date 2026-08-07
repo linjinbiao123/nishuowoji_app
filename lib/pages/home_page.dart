@@ -16,6 +16,7 @@ import '../widgets/image_viewer.dart';
 import '../widgets/attachment_image.dart';
 import 'add_record_page.dart';
 import 'voice_record_dialog.dart';
+import 'history_page.dart';
 import 'stats_page.dart';
 import 'budget_page.dart';
 import 'settings_page.dart';
@@ -54,6 +55,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     0xFFEF4444, 0xFF06B6D4, 0xFF84CC16, 0xFFF59E0B, 0xFF636E72,
   ];
 
+  final GlobalKey<HistoryPageState> _historyKey = GlobalKey();
   final GlobalKey<StatsPageState> _statsKey = GlobalKey();
   final GlobalKey<BudgetPageState> _budgetKey = GlobalKey();
   final GlobalKey<SettingsPageState> _settingsKey = GlobalKey();
@@ -272,6 +274,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               index: _tab,
               children: [
                 _buildAccountPage(todayRecords),
+                HistoryPage(key: _historyKey),
                 StatsPage(key: _statsKey),
                 BudgetPage(key: _budgetKey),
                 SettingsPage(
@@ -294,6 +297,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               // 切换标签时刷新数据，保证设置页改动（自定义分类、预算等）同步到各页
               _loadData();
               _loadCustomCategories();
+              _historyKey.currentState?.refresh();
               _statsKey.currentState?.refresh();
               _budgetKey.currentState?.refresh();
               _settingsKey.currentState?.refresh();
@@ -310,6 +314,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 icon: Icon(Icons.book_outlined),
                 activeIcon: Icon(Icons.book),
                 label: '记账',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.receipt_long_outlined),
+                activeIcon: Icon(Icons.receipt_long),
+                label: '账单',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.bar_chart_outlined),
