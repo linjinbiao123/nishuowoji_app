@@ -264,6 +264,22 @@ class Storage {
     await _saveAllRaw(list);
   }
 
+  /// 批量新增记录到指定账本（导入账本用）。
+  /// [records] 已是带 ledgerId 的完整 [Record]，直接追加，不覆盖现有数据。
+  /// 会按 [amount/time/category/note/isExpense/ledgerId] 做去重，避免重复导入。
+  static Future<void> bulkAdd(List<Record> records) async {
+    final existing = await getAllRaw();
+    String key(Record r) => '${r.ledgerId}|${r.isExpense ? 1 : 0}|${r.amount.toStringAsFixed(2)}|${r.category}|${r.note}|${r.time.millisecondsSinceEpoch}';
+    final seen = <String>{...existing.map(key)};
+    final unique = <Record>[];
+    for (final r in records) {
+      final k = key(r);
+      if (seen.add(k)) unique.add(r);
+    }
+    existing.insertAll(0, unique);
+    await _saveAllRaw(existing);
+  }
+
   /// 按"当前账本过滤后的列表"中的下标删除记录
   static Future<void> remove(int index) async {
     final currentId = await getCurrentLedgerId();

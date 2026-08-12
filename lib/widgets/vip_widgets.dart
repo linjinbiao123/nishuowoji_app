@@ -66,22 +66,50 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
     }
   }
 
-  void _tip(String msg) {
+  void _tip(String msg, {bool inSheet = false}) {
     final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Center(child: Text(msg,
-          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500))),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: AppThemeMode.isLight
-          ? const Color(0xFF323232)
-          : theme.base[1].withOpacity(0.96),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.accent.withOpacity(0.35)),
+    // 在 BottomSheet 内部调用时，ScaffoldMessenger.of(context) 找到的是上层页面 Scaffold，
+    // 导致 SnackBar 显示在 BottomSheet 后面/上层页面。改用 Overlay 显示 Toast，确保跟随当前页面。
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + (inSheet ? 110 : 60),
+        left: 0,
+        right: 0,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 80),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              decoration: BoxDecoration(
+                color: AppThemeMode.isLight
+                    ? const Color(0xFF323232)
+                    : theme.base[1].withOpacity(0.96),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: theme.accent.withOpacity(0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: theme.accent, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(msg,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      duration: const Duration(seconds: 2),
-    ));
+    );
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 2), entry.remove);
   }
 
   @override
@@ -124,7 +152,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
               GestureDetector(
                 onTap: _deviceCode.isEmpty ? null : () {
                   Clipboard.setData(ClipboardData(text: _deviceCode));
-                  _tip('设备码已复制');
+                  _tip('设备码已复制', inSheet: true);
                 },
                 child: Container(
                   width: double.infinity,

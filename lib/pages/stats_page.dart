@@ -262,13 +262,14 @@ class StatsPageState extends State<StatsPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppDark.cardBg : Colors.transparent,
+          color: selected ? AppBgTheme.all[0].accent.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
+          border: selected ? Border.all(color: AppBgTheme.all[0].accent) : null,
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: selected ? AppDark.title : AppDark.sub,
+            color: selected ? AppBgTheme.all[0].accent : AppDark.sub,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13,
           ),

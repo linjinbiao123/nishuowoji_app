@@ -1,7 +1,7 @@
 name: nishuowoji_app
 description: "记账 App - 说记"
 publish_to: 'none'
-version: 0.1.4+6
+version: 0.1.5+7
 
 environment:
   sdk: ^3.5.3
@@ -23,6 +23,10 @@ dependencies:
   sherpa_onnx: ^1.13.4
   path_provider: ^2.1.6
   url_launcher: ^6.3.2
+  file_picker: ^8.0.0
+  excel: ^4.0.6
+  csv: ^5.1.1
+  intl: ^0.20.2
   package_info_plus: ^9.0.1
   image_picker: ^1.1.2
   path: ^1.9.0

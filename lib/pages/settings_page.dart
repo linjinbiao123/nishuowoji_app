@@ -8,8 +8,10 @@ import '../services/notification_service.dart';
 import '../services/vip_service.dart';
 import '../widgets/vip_widgets.dart';
 import '../services/update_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'agreement_page.dart';
 import 'data_stats_page.dart';
+import 'import_preview_page.dart';
 
 class SettingsPage extends StatefulWidget {
   /// 切换背景主题时回调父级（HomePage），让全局背景实时刷新
@@ -494,6 +496,14 @@ class SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 10),
               _buildCard([
                 _buildSettingItem(
+                  icon: Icons.file_download,
+                  iconColor: const Color(0xFF10B981),
+                  title: '导入账本',
+                  subtitle: '从其它记账 App 的 CSV/Excel 导入',
+                  onTap: () => _importLedger(),
+                ),
+                Divider(height: 1, indent: 52, color: AppDark.divider),
+                _buildSettingItem(
                   icon: Icons.insights,
                   iconColor: const Color(0xFF0984E3),
                   title: '数据统计导出',
@@ -666,6 +676,36 @@ class SettingsPageState extends State<SettingsPage> {
       MaterialPageRoute(builder: (_) => const DataStatsPage()),
     );
     _loadInfo();
+  }
+
+  void _importLedger() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv', 'xlsx', 'xls'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('读取文件失败')));
+      }
+      return;
+    }
+    if (!mounted) return;
+    final count = await Navigator.push<int>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ImportPreviewPage(fileName: file.name, bytes: bytes),
+      ),
+    );
+    if (count != null && mounted) {
+      _loadInfo();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('成功导入 $count 条记录')),
+      );
+    }
   }
 
   void _showCustomCategoryManager() async {

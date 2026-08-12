@@ -93,6 +93,25 @@ class HistoryPageState extends State<HistoryPage> {
   int get _photoCount =>
       _allRecords.fold<int>(0, (sum, r) => sum + r.images.length);
 
+  Widget _buildToggleBtn(String text, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? AppBgTheme.all[0].accent.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: selected ? Border.all(color: AppBgTheme.all[0].accent) : null,
+        ),
+        child: Text(text, style: TextStyle(
+          fontSize: 12, fontWeight: FontWeight.w600,
+          color: selected ? AppBgTheme.all[0].accent : AppDark.sub,
+        )),
+      ),
+    );
+  }
+
   /// 打开票据相册：按年月分组集中翻阅所有带图片的记录
   void _openReceiptGallery() {
     Navigator.push(
@@ -238,34 +257,8 @@ class HistoryPageState extends State<HistoryPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        GestureDetector(
-                          onTap: () => setState(() { _isYearly = false; _selectedDay = null; }),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: !_isYearly ? AppDark.cardBg : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text('月度', style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600,
-                              color: !_isYearly ? AppDark.title : AppDark.sub,
-                            )),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => setState(() { _isYearly = true; _selectedDay = null; _showCalendar = false; }),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: _isYearly ? AppDark.cardBg : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text('年度', style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600,
-                              color: _isYearly ? AppDark.title : AppDark.sub,
-                            )),
-                          ),
-                        ),
+                        _buildToggleBtn('月度', !_isYearly, () => setState(() { _isYearly = false; _selectedDay = null; })),
+                        _buildToggleBtn('年度', _isYearly, () => setState(() { _isYearly = true; _selectedDay = null; _showCalendar = false; })),
                       ],
                     ),
                   ),
