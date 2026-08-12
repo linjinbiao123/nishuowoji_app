@@ -679,7 +679,7 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   void _importLedger() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv', 'xlsx', 'xls'],
       withData: true,
