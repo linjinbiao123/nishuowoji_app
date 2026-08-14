@@ -33,7 +33,7 @@ jobs:
           else
             echo "No KEYSTORE_BASE64 secret, falling back to debug signing"
           fi
-      - run: flutter build apk --release
+      - run: flutter build apk --release --no-tree-shake-icons
       - uses: actions/upload-artifact@v4
         with:
           name: app-release.apk
