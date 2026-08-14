@@ -21,6 +21,7 @@ class HistoryPageState extends State<HistoryPage> {
   bool _showCalendar = false;
   bool _isYearly = false;
   String _attachDir = '';
+  List<Account> _accounts = [];
 
   final _categoryIcons = <String, IconData>{
     '餐饮': Icons.restaurant,
@@ -76,7 +77,26 @@ class HistoryPageState extends State<HistoryPage> {
 
   Future<void> _loadData() async {
     final records = await Storage.getAll();
-    setState(() => _allRecords = records);
+    final accounts = await Storage.getAccounts();
+    setState(() {
+      _allRecords = records;
+      _accounts = accounts;
+    });
+  }
+
+  String? _accountNameFor(String? accountId) {
+    if (accountId == null || accountId.isEmpty) return null;
+    try {
+      return _accounts.firstWhere((a) => a.id == accountId).name;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Color _accountTagColor(String name) {
+    if (name == '微信') return const Color(0xFF07C160);
+    if (name == '支付宝') return AppColors.primary;
+    return AppColors.primary;
   }
 
   Future<void> _loadCustomCategories() async {
@@ -591,6 +611,19 @@ class HistoryPageState extends State<HistoryPage> {
                             color: Color(0xFFFFB020), fontSize: 10, fontWeight: FontWeight.w600,
                           )),
                         ),
+                      ],
+                      if (_accountNameFor(r.accountId) case final name?) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _accountTagColor(name).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(name, style: TextStyle(
+                          color: _accountTagColor(name), fontSize: 10, fontWeight: FontWeight.w600,
+                        )),
+                      ),
                       ],
                     ],
                   ),

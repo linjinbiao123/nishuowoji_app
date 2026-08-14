@@ -38,6 +38,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   double _monthlyBudget = 0;
   Map<String, double> _categoryBudgets = {};
   Map<String, double> _catExpenses = {};
+  List<Account> _accounts = [];
   Ledger? _currentLedger;
   int _bgIndex = 0; // 全局背景主题索引
   int _budgetStartDay = 1;
@@ -105,6 +106,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final catBudgets = await Storage.getCategoryBudgets();
     final ledger = await Storage.getCurrentLedger();
     final bg = await Storage.getBgIndex();
+    final accounts = await Storage.getAccounts();
     final vip = await VipService.isVip();
     final budgetStartDay = await Storage.getBudgetStartDay();
     final now = DateTime.now();
@@ -141,9 +143,25 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _catExpenses = catExp;
       _currentLedger = ledger;
       _bgIndex = bg;
+      _accounts = accounts;
       _isVip = vip;
       _budgetStartDay = budgetStartDay;
     });
+  }
+
+  String? _accountNameFor(String? accountId) {
+    if (accountId == null || accountId.isEmpty) return null;
+    try {
+      return _accounts.firstWhere((a) => a.id == accountId).name;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Color _accountTagColor(String name) {
+    if (name == '微信') return const Color(0xFF07C160);
+    if (name == '支付宝') return AppColors.primary;
+    return AppColors.primary;
   }
 
   // ---------------- 长按麦克风直接录音 ----------------
@@ -1169,9 +1187,30 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(r.category, style: TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 15, color: AppDark.title,
-                )),
+                Row(
+                  children: [
+                    Text(r.category, style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 15, color: AppDark.title,
+                    )),
+                    const SizedBox(width: 6),
+                    if (_accountNameFor(r.accountId) case final name?)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _accountTagColor(name).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            color: _accountTagColor(name),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 Text(r.note, style: TextStyle(
                   color: AppDark.sub, fontSize: 12,
                 )),

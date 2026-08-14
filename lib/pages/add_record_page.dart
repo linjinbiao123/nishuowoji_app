@@ -29,6 +29,10 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   String? _deletingCat;
   int _bgIndex = 0; // 全局深色背景主题索引
 
+  // 多账户：选中的账户ID（null = 不计入任何账户）
+  String? _accountId;
+  List<Account> _accounts = [];
+
   // 附件（图片 / 发票）
   final ImagePicker _picker = ImagePicker();
   List<String> _pendingImages = []; // 已保存到附件目录的文件名
@@ -54,6 +58,9 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
     }
     _loadCustomCategories();
     _loadDeletedCategories();
+    Storage.getAccounts().then((accs) {
+      if (mounted) setState(() => _accounts = accs);
+    });
     Storage.getBgIndex().then((i) {
       if (mounted) setState(() => _bgIndex = i);
     });
@@ -130,8 +137,13 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
       isExpense: _isExpense,
       images: List.from(_pendingImages),
       isInvoice: _isInvoice,
+      accountId: _accountId,
     );
     await Storage.add(r);
+    // 选中账户时自动增减余额（支出为负，收入为正）
+    if (_accountId != null) {
+      await Storage.adjustAccountBalance(_accountId!, _isExpense ? -amount : amount);
+    }
     if (!mounted) return;
     Navigator.pop(context, true);
   }
@@ -448,6 +460,48 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                 ],
               ),
               const SizedBox(height: 16),
+              // 账户选择（不计入任何账户 / 选某账户自动增减余额）
+              GestureDetector(
+                onTap: _showAccountSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppDark.cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppDark.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet_outlined,
+                        size: 18, color: AppDark.sub),
+                      const SizedBox(width: 8),
+                      Text('账户', style: TextStyle(color: AppDark.title, fontSize: 14)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _accountId == null
+                              ? '不计入账户'
+                              : _accounts
+                                  .firstWhere(
+                                    (a) => a.id == _accountId,
+                                    orElse: () => Account(id: '', name: '已删除'),
+                                  )
+                                  .name,
+                          style: TextStyle(
+                            color: _accountId == null ? AppDark.hint : theme.accent,
+                            fontSize: 14, fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_drop_down, color: AppDark.sub, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // 保存按钮
               SizedBox(
                 width: double.infinity,
@@ -475,6 +529,91 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
   IconData _getCategoryIcon(String name) => Categories.iconOf(name);
 
   Color _getCategoryColor(String name) => Categories.colorOf(name);
+
+  void _showAccountSheet() {
+    final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
+    Icon accIcon(int code, Color color, double size) =>
+        Icon(IconData(code, fontFamily: 'MaterialIcons'), color: color, size: size);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppDark.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('选择账户', style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white,
+            )),
+            const SizedBox(height: 8),
+            Text('不选则正常记账，不计入任何账户余额', style: TextStyle(
+              fontSize: 12, color: AppDark.hint,
+            )),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                // 不计入账户
+                GestureDetector(
+                  onTap: () {
+                    setState(() => _accountId = null);
+                    Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _accountId == null ? theme.accent.withOpacity(0.18) : Colors.white.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _accountId == null ? theme.accent : AppDark.divider),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.block, color: Colors.white, size: 18),
+                        const SizedBox(width: 6),
+                        const Text('不计入', style: TextStyle(color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
+                ..._accounts.map((a) {
+                  final selected = a.id == _accountId;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _accountId = a.id);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? theme.accent.withOpacity(0.18) : Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: selected ? theme.accent : AppDark.divider),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          accIcon(a.icon, Colors.white, 18),
+                          const SizedBox(width: 6),
+                          Text(a.name, style: const TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showCategoryDialog() {
     showModalBottomSheet(

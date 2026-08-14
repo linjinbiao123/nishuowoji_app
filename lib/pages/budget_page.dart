@@ -25,6 +25,8 @@ class BudgetPageState extends State<BudgetPage> {
   List<CategoryDef> _cats = [];
   bool _isVip = false;
   int _budgetStartDay = 1;
+  List<Account> _accounts = [];
+  int _bgIndex = 0;
 
   @override
   void initState() {
@@ -55,6 +57,8 @@ class BudgetPageState extends State<BudgetPage> {
     final custom = await Storage.getCustomCategories();
     final isVip = await VipService.isVip();
     final startDay = await Storage.getBudgetStartDay();
+    final accounts = await Storage.getAccounts();
+    final bgIndex = await Storage.getBgIndex();
 
     final (periodStart, periodEnd) = _budgetPeriodWith(startDay);
 
@@ -83,6 +87,8 @@ class BudgetPageState extends State<BudgetPage> {
       _cats = Categories.activeExpense(deleted, custom);
       _isVip = isVip;
       _budgetStartDay = startDay;
+      _accounts = accounts;
+      _bgIndex = bgIndex;
     });
   }
 
@@ -138,6 +144,8 @@ class BudgetPageState extends State<BudgetPage> {
             ),
             const SizedBox(height: 16),
             _buildMonthlyCard(),
+            const SizedBox(height: 22),
+            _buildAccountSection(),
             const SizedBox(height: 22),
             if (_isVip) ...[
               _buildCategoryHeader(),
@@ -260,18 +268,13 @@ class BudgetPageState extends State<BudgetPage> {
                   Text('本月预算', style: TextStyle(fontSize: 13, color: AppDark.sub)),
                   const SizedBox(height: 6),
                   Text(
-                    '¥${_monthExpense.toStringAsFixed(0)}',
+                    '¥${_monthlyBudget.toStringAsFixed(0)}',
                     style: TextStyle(
                       fontSize: 26, fontWeight: FontWeight.w800, color: AppDark.title,
                     ),
                   ),
                   const SizedBox(height: 4),
                   if (hasBudget) ...[
-                    Text(
-                      '预算 ¥${_monthlyBudget.toStringAsFixed(0)}',
-                      style: TextStyle(fontSize: 12, color: AppDark.sub),
-                    ),
-                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Icon(
@@ -284,11 +287,11 @@ class BudgetPageState extends State<BudgetPage> {
                           child: Text(
                             isOver
                                 ? '已超支 ¥${(-remaining).toStringAsFixed(0)}'
-                                : '还可花 ¥${remaining.toStringAsFixed(0)}',
+                                : '本月剩余 ¥${remaining.toStringAsFixed(0)}',
                             style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: isOver ? AppColors.danger : const Color(0xFF34D399),
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.danger,
                             ),
                           ),
                         ),
@@ -328,6 +331,253 @@ class BudgetPageState extends State<BudgetPage> {
         ),
       ),
     );
+  }
+
+  // ---------------- 多账户余额 ----------------
+
+  Icon _accountIcon(int code, Color color, double size) =>
+      Icon(IconData(code, fontFamily: 'MaterialIcons'), color: color, size: size);
+
+  Widget _buildAccountSection() {
+    final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
+    final total = _accounts.fold<double>(0, (s, a) => s + a.balance);
+    return GlassCard(
+      radius: 20,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet, color: theme.accent, size: 20),
+              const SizedBox(width: 8),
+              Text('账户余额', style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w800, color: AppDark.title,
+              )),
+              const Spacer(),
+              GestureDetector(
+                onTap: _showAccountManageDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: theme.accent.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, size: 14, color: theme.accent),
+                      const SizedBox(width: 4),
+                      Text('管理', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: theme.accent)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ..._accounts.map((a) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 34, height: 34,
+                  decoration: BoxDecoration(
+                    color: theme.accent.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: _accountIcon(a.icon, theme.accent, 18),
+                ),
+                const SizedBox(width: 10),
+                Text(a.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDark.title)),
+                const Spacer(),
+                Text('¥${a.balance.toStringAsFixed(2)}', style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w700,
+                  color: a.balance < 0 ? AppColors.danger : AppDark.title,
+                )),
+              ],
+            ),
+          )),
+          Divider(height: 16, color: AppDark.divider),
+          Row(
+            children: [
+              Text('总资产', style: TextStyle(fontSize: 13, color: AppDark.sub)),
+              const Spacer(),
+              Text('¥${total.toStringAsFixed(2)}', style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w800, color: theme.accent,
+              )),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAccountManageDialog() async {
+    final theme = AppBgTheme.all[_bgIndex % AppBgTheme.all.length];
+    final work = List<Account>.from(_accounts);
+    final nameCtrls = work.map((a) => TextEditingController(text: a.name)).toList();
+    final balCtrls = work.map((a) => TextEditingController(text: a.balance.toStringAsFixed(2))).toList();
+
+    final result = await showDialog<List<Account>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          void addAccount() {
+            work.add(Account(
+              id: 'acc_${DateTime.now().microsecondsSinceEpoch}',
+              name: '新账户',
+              balance: 0,
+              icon: 0xE850,
+            ));
+            nameCtrls.add(TextEditingController(text: '新账户'));
+            balCtrls.add(TextEditingController(text: '0.00'));
+            setDialogState(() {});
+          }
+
+          void removeAccount(int idx) {
+            work.removeAt(idx);
+            nameCtrls[idx].dispose();
+            balCtrls[idx].dispose();
+            nameCtrls.removeAt(idx);
+            balCtrls.removeAt(idx);
+            setDialogState(() {});
+          }
+
+          List<Account> collect() {
+            final list = <Account>[];
+            for (var i = 0; i < work.length; i++) {
+              list.add(work[i].copyWith(
+                name: nameCtrls[i].text.trim(),
+                balance: double.tryParse(balCtrls[i].text) ?? work[i].balance,
+              ));
+            }
+            return list;
+          }
+
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('管理账户', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black)),
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: work.asMap().entries.map((e) {
+                          final a = e.value;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                _accountIcon(a.icon, theme.accent, 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextField(
+                                    controller: nameCtrls[e.key],
+                                    style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w600),
+                                    decoration: InputDecoration(
+                                      hintText: '账户名',
+                                      hintStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      filled: true,
+                                      fillColor: Colors.grey[100],
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(color: Colors.grey[300]!),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextField(
+                                    controller: balCtrls[e.key],
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w600),
+                                    decoration: InputDecoration(
+                                      hintText: '余额',
+                                      hintStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                      prefixText: '¥ ',
+                                      prefixStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      filled: true,
+                                      fillColor: Colors.grey[100],
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(color: Colors.grey[300]!),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () => removeAccount(e.key),
+                                  child: Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: addAccount,
+                          icon: Icon(Icons.add, size: 16, color: theme.accent),
+                          label: Text('新增账户', style: TextStyle(color: theme.accent, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            side: BorderSide(color: theme.accent),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, collect()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.accent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('保存', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    for (final c in nameCtrls) c.dispose();
+    for (final c in balCtrls) c.dispose();
+
+    if (result != null) {
+      // 找出被删除的账户，清理其历史记录引用
+      final removed = _accounts.where((a) => !result.any((r) => r.id == a.id)).toList();
+      for (final a in removed) {
+        await Storage.deleteAccount(a.id);
+      }
+      await Storage.saveAccounts(result);
+      setState(() => _accounts = result);
+    }
   }
 
   void _showMonthlyBudgetDialog() {

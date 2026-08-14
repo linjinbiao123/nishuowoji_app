@@ -49,6 +49,7 @@ class Record {
   final String ledgerId; // 所属账本
   final List<String> images; // 附件文件名（存于 app 私有 attachments 目录）
   final bool isInvoice; // 是否标记为发票附件
+  final String? accountId; // 关联的多账户ID，null 表示不计入任何账户
 
   Record({
     required this.amount,
@@ -59,6 +60,7 @@ class Record {
     this.ledgerId = kDefaultLedgerId,
     this.images = const [],
     this.isInvoice = false,
+    this.accountId,
   });
 
   // 计算带符号的金额（支出为负，收入为正）
@@ -73,6 +75,7 @@ class Record {
     'ledgerId': ledgerId,
     'images': images,
     'isInvoice': isInvoice ? '1' : '0',
+    'accountId': accountId,
   };
 
   factory Record.fromJson(Map<String, dynamic> j) => Record(
@@ -86,6 +89,7 @@ class Record {
         ? List<String>.from(j['images'] as List)
         : const <String>[],
     isInvoice: j['isInvoice'] == '1',
+    accountId: j['accountId'] as String?,
   );
 }
 
@@ -258,6 +262,7 @@ class Storage {
       ledgerId: currentId,
       images: r.images,
       isInvoice: r.isInvoice,
+      accountId: r.accountId,
     );
     final list = await getAllRaw();
     list.insert(0, tagged);
@@ -452,4 +457,104 @@ class Storage {
     }
     return map;
   }
+
+  // ---- 多账户（按账本独立存储） ----
+
+  static const _accountsKey = 'accounts';
+
+  /// 读取当前账本的全部账户；未初始化时返回默认三个（微信/支付宝/银行卡）
+  static Future<List<Account>> getAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ledgerId = await getCurrentLedgerId();
+    final raw = prefs.getString('${_accountsKey}_$ledgerId');
+    if (raw == null || raw.isEmpty) return _defaultAccounts();
+    try {
+      final list = jsonDecode(raw) as List;
+      final accs = list.map((e) => Account.fromJson(Map<String, dynamic>.from(e))).toList();
+      return accs.isEmpty ? _defaultAccounts() : accs;
+    } catch (_) {
+      return _defaultAccounts();
+    }
+  }
+
+  static List<Account> _defaultAccounts() => [
+    Account(id: 'acc_wechat', name: '微信', balance: 0, icon: 0xE0B7),
+    Account(id: 'acc_alipay', name: '支付宝', balance: 0, icon: 0xE263),
+  ];
+
+  /// 保存当前账本的全部账户
+  static Future<void> saveAccounts(List<Account> accounts) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ledgerId = await getCurrentLedgerId();
+    await prefs.setString('${_accountsKey}_$ledgerId', jsonEncode(accounts.map((e) => e.toJson()).toList()));
+  }
+
+  /// 按账户ID调整余额（支出为负、收入为正）。账户不存在则忽略。
+  static Future<void> adjustAccountBalance(String accountId, double delta) async {
+    final accounts = await getAccounts();
+    final idx = accounts.indexWhere((a) => a.id == accountId);
+    if (idx == -1) return;
+    accounts[idx] = accounts[idx].copyWith(balance: accounts[idx].balance + delta);
+    await saveAccounts(accounts);
+  }
+
+  /// 删除账户：清掉该账本引用此账户的记录上的账户标记，避免孤儿引用
+  static Future<void> deleteAccount(String accountId) async {
+    final raw = await getAllRaw();
+    var changed = false;
+    for (var i = 0; i < raw.length; i++) {
+      if (raw[i].accountId == accountId) {
+        raw[i] = Record(
+          amount: raw[i].amount,
+          category: raw[i].category,
+          note: raw[i].note,
+          time: raw[i].time,
+          isExpense: raw[i].isExpense,
+          ledgerId: raw[i].ledgerId,
+          images: raw[i].images,
+          isInvoice: raw[i].isInvoice,
+        );
+        changed = true;
+      }
+    }
+    if (changed) await _saveAllRaw(raw);
+    final accounts = await getAccounts();
+    accounts.removeWhere((a) => a.id == accountId);
+    await saveAccounts(accounts);
+  }
+}
+
+class Account {
+  final String id;
+  final String name;
+  final double balance;
+  final int icon; // IconData.codePoint
+
+  Account({
+    required this.id,
+    required this.name,
+    this.balance = 0,
+    this.icon = 0xE850,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'balance': balance.toStringAsFixed(2),
+    'icon': icon,
+  };
+
+  factory Account.fromJson(Map<String, dynamic> j) => Account(
+    id: j['id'] as String,
+    name: j['name'] as String,
+    balance: double.tryParse(j['balance'] as String? ?? '0') ?? 0,
+    icon: j['icon'] is int ? j['icon'] as int : 0xE850,
+  );
+
+  Account copyWith({String? name, double? balance, int? icon}) => Account(
+    id: id,
+    name: name ?? this.name,
+    balance: balance ?? this.balance,
+    icon: icon ?? this.icon,
+  );
 }

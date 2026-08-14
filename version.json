@@ -1,6 +1,7 @@
 {
-  "build": 7,
-  "version": "0.1.5",
-  "url": "https://wwbro.lanzouu.com/i0DJR3y8mube",
+  "build": 8,
+  "version": "0.1.6",
+  "url": "https://wwbro.lanzn.com/b01eun2abi",
+  "code": "1111",
   "note": "1. 新增图片/发票附件上传（本地存储，删除记录自动清理附件）"
 }

@@ -9,11 +9,13 @@ class UpdateInfo {
   final String version;
   final String url;
   final String note;
+  final String code;
   const UpdateInfo({
     required this.hasUpdate,
     required this.version,
     required this.url,
     required this.note,
+    this.code = '',
   });
 }
 
@@ -34,6 +36,7 @@ class UpdateService {
       final remoteVersion = json['version'] as String? ?? '';
       final url = json['url'] as String? ?? '';
       final note = json['note'] as String? ?? '';
+      final code = json['code'] as String? ?? '';
 
       final info = await PackageInfo.fromPlatform();
       final localBuild = int.tryParse(info.buildNumber) ?? 0;
@@ -43,6 +46,7 @@ class UpdateService {
         version: remoteVersion,
         url: url,
         note: note,
+        code: code,
       );
     } catch (_) {
       return null;

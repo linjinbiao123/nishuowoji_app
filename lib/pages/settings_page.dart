@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
@@ -83,44 +84,107 @@ class SettingsPageState extends State<SettingsPage> {
 
   Future<void> _checkUpdate() async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('正在检查更新…'), duration: Duration(seconds: 1)),
+      const SnackBar(content: Text('正在获取下载地址…'), duration: Duration(seconds: 1)),
     );
     final info = await UpdateService.check();
     if (!mounted) return;
 
-    if (info == null) {
+    if (info == null || info.url.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('检查失败，请确认网络连接')),
+        const SnackBar(content: Text('获取下载地址失败，请确认网络连接')),
       );
       return;
     }
-    if (!info.hasUpdate) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已是最新版本')),
-      );
-      return;
-    }
-    // 有新版本 → 弹窗提示
+    // 直接弹窗展示蓝奏云下载链接
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppDark.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('发现新版本 v${info.version}',
+        title: Text('下载更新',
             style: TextStyle(color: Colors.white, fontSize: 17)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (info.note.isNotEmpty)
-              Text(info.note,
-                  style: TextStyle(color: AppDark.sub, fontSize: 14, height: 1.5)),
+            Text('点击下方链接复制下载地址，或点「去下载」在浏览器打开下载页面。',
+                style: TextStyle(color: AppDark.sub, fontSize: 14, height: 1.5)),
+            const SizedBox(height: 14),
+            Text('下载链接', style: TextStyle(color: AppDark.hint, fontSize: 12)),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: info.url));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('下载链接已复制'), duration: Duration(seconds: 2)),
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppDark.divider),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        info.url,
+                        style: TextStyle(color: AppColors.primary, fontSize: 13),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.copy, size: 16, color: AppDark.sub),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (info.code.isNotEmpty) ...[
+              Text('提取密码', style: TextStyle(color: AppDark.hint, fontSize: 12)),
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: info.code));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('提取密码已复制'), duration: Duration(seconds: 2)),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppDark.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          info.code,
+                          style: TextStyle(color: AppColors.primary, fontSize: 15, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.copy, size: 16, color: AppDark.sub),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('稍后再说', style: TextStyle(color: AppDark.sub)),
+            child: Text('关闭', style: TextStyle(color: AppDark.sub)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
