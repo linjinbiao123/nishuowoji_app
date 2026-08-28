@@ -1,0 +1,39 @@
+{
+  "name": "nishuowoji_app (Flutter)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // 让所有终端都能直接使用 flutter / dart 命令
+  "containerEnv": {
+    "FLUTTER_ROOT": "${containerEnv:HOME}/flutter",
+    "PATH": "${containerEnv:HOME}/flutter/bin:${containerEnv:PATH}"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.flutter",
+        "Dart-Code.dart-code"
+      ],
+      "settings": {
+        "dart.flutterSdkPath": "${containerEnv:HOME}/flutter"
+      }
+    }
+  },
+
+  // 首次创建容器后自动安装 Flutter SDK 并拉取依赖
+  "postCreateCommand": "bash .devcontainer/setup-flutter.sh",
+
+  // Codespaces 里平板浏览器访问时，把 web 调试端口暴露出来
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Flutter Web",
+      "onAutoForward": "notify"
+    }
+  }
+}

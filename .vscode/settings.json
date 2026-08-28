@@ -1,0 +1,50 @@
+{
+  // Flutter SDK 路径（由 .devcontainer/setup-flutter.sh 安装到 $HOME/flutter）
+  // 使用 ${env:HOME} 以便在你本地机器 / Codespaces / 其他开发环境都能生效
+  "dart.flutterSdkPath": "${env:HOME}/flutter",
+
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.selectionHighlight": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletionMode": "onlySnippets",
+    "editor.wordBasedSuggestions": "off",
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.rulers": [80]
+  },
+
+  // 分析器：整个工作区生效，便于 tool/ 下的脚本也能得到提示
+  "dart.analysisExcludedFolders": [
+    "**/build/**",
+    "**/.dart_tool/**",
+    "android/**",
+    "ios/**",
+    "macos/**",
+    "windows/**",
+    "linux/**"
+  ],
+  "dart.showTodos": true,
+  "dart.closingLabels": true,
+
+  // 在资源管理器/搜索中隐藏生成物，减少噪音
+  "files.exclude": {
+    "**/.dart_tool": true,
+    "**/.pub-cache": true,
+    "**/.packages": true,
+    "**/.flutter-plugins": true,
+    "**/.flutter-plugins-dependencies": true,
+    "**/build": true
+  },
+  "search.exclude": {
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/pubspec.lock": true
+  },
+
+  // 中文输入法/平板外接键盘下避免保存时自动移除尾随空格导致的 diff 噪音
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
