@@ -33,8 +33,17 @@ jobs:
           else
             echo "No KEYSTORE_BASE64 secret, falling back to debug signing"
           fi
-      - run: flutter build apk --release --no-tree-shake-icons
+      # 按 CPU 架构分包：sherpa_onnx 的原生推理库每个架构约 18-31MB，
+      # 打成全架构包会到 140MB 以上。分包后单包约 45-60MB，
+      # 用户只需下载匹配手机架构的那一版。
+      - run: flutter build apk --release --split-per-abi --no-tree-shake-icons
+      - name: 显示各架构包大小
+        run: ls -lh build/app/outputs/flutter-apk/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: app-release-apks
+          path: build/app/outputs/flutter-apk/*.apk
+          # 缩短保留期，避免历史产物累积占满 GitHub 存储配额
+          # （默认 90 天，免费账户仅 500MB，极易撑满）
+          retention-days: 7
+          if-no-files-found: error
