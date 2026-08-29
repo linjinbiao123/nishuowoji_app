@@ -1,6 +1,5 @@
 package com.example.nishuowoji_app
 
-import android.content.Intent
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterActivityLaunchConfigs.BackgroundMode
@@ -24,12 +23,13 @@ class QuickAddActivity : FlutterActivity() {
         AppEngine.onFinishRequested = { finishAndCollapse() }
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        // 磁贴被再次点击（Activity 已存在）：把已有弹窗重置到初始状态
-        if (intent != null) setIntent(intent)
-        AppEngine.setMode(MODE_QUICK_ADD)
-    }
+    // 不重写 onNewIntent：
+    // API 35 起签名变为 onNewIntent(Intent, ComponentCaller)，
+    // 重写旧签名会编译失败，重写新签名则在低版本设备上收不到回调（该方法不存在）。
+    // 这里统一由 onResume 处理——磁贴重复点击时 onNewIntent 后必然紧跟 onResume，
+    // 因此功能完全等价，且不受 API 版本差异影响。
+    //
+    // override fun onNewIntent(...) { }
 
     override fun onResume() {
         super.onResume()

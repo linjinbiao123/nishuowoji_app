@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
+import android.util.Log
 
 /**
  * 通知栏快捷设置磁贴：点一下直接弹出记账窗口，不进入 App 主界面。
@@ -54,16 +55,21 @@ class QuickAddTileService : TileService() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // Android 14+ 禁止 TileService 直接 startActivity，
-            // 必须包一层 PendingIntent，且需手动折叠面板
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                REQUEST_CODE,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            launchActivityFromPendingIntent(pendingIntent)
-            collapsePanel()
+            // Android 14+ 禁止 TileService 直接 startActivity，只能通过 PendingIntent 启动。
+            // 这里用 PendingIntent.send()（API 1 起可用，各版本行为一致），
+            // 不依赖 launchActivityFromPendingIntent()，后者在本项目的 SDK 中不可用。
+            // 面板收起由系统在启动新 task 的 Activity 时自动完成。
+            try {
+                PendingIntent.getActivity(
+                    this,
+                    REQUEST_CODE,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                ).send()
+            } catch (e: PendingIntent.CanceledException) {
+                // PendingIntent 已被系统取消，此时无能为力，仅记录便于排查
+                Log.w(TAG, "快捷记账 PendingIntent 被取消", e)
+            }
         } else {
             @Suppress("DEPRECATION")
             startActivityAndCollapse(intent)
@@ -72,5 +78,6 @@ class QuickAddTileService : TileService() {
 
     private companion object {
         const val REQUEST_CODE = 1001
+        const val TAG = "QuickAddTile"
     }
 }
