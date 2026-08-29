@@ -4,46 +4,83 @@ on:
   push:
     branches: [main]
     paths-ignore:
+      # 仅更新下载链接/说明时无需重新构建
       - 'version.json'
+      - '**.md'
+      - '.vscode/**'
+      - '.devcontainer/**'
+
+# 必须：创建 Release 并上传附件需要写权限
+permissions:
+  contents: write
 
 jobs:
-  apk:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          distribution: 'zulu'
+          java-version: '17.x'
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
-      - run: flutter pub get
-      - name: Prepare release signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          flutter-version: '3.35.1'
+          channel: 'stable'
+
+      - name: 恢复 keystore
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-            printf 'storeFile=release.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
+            echo "storeFile=keystore.jks" >> android/key.properties
+            echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
             echo "Release signing configured"
           else
-            echo "No KEYSTORE_BASE64 secret, falling back to debug signing"
+            echo "No keystore secret found, falling back to debug signing"
           fi
+
+      - run: flutter pub get
+
       # 按 CPU 架构分包：sherpa_onnx 的原生推理库每个架构约 18-31MB，
-      # 打成全架构包会到 140MB 以上。分包后单包约 45-60MB，
+      # 打成全架构包会到 140MB 以上。分包后单包约 40-56MB，
       # 用户只需下载匹配手机架构的那一版。
       - run: flutter build apk --release --split-per-abi --no-tree-shake-icons
+
       - name: 显示各架构包大小
         run: ls -lh build/app/outputs/flutter-apk/*.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apks
-          path: build/app/outputs/flutter-apk/*.apk
-          # 缩短保留期，避免历史产物累积占满 GitHub 存储配额
-          # （默认 90 天，免费账户仅 500MB，极易撑满）
-          retention-days: 7
-          if-no-files-found: error
+
+      - name: 读取版本号
+        id: ver
+        run: |
+          V=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1)
+          B=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "build=$B" >> "$GITHUB_OUTPUT"
+
+      # 上传到 Release 而非 artifact：
+      # Actions 的 artifact 配额仅 500MB，全架构包几次就撑满且 6-12 小时才重算；
+      # Release 走仓库存储配额（1GB）且可长期保留。
+      # 固定使用 latest 标签，先删旧版再发布，避免历史产物累积。
+      # 下载链接保持不变，便于长期使用。
+      - name: 清理旧的 latest 发布
+        run: gh release delete latest --yes --cleanup-tag 2>/dev/null || echo "尚无旧的 latest 发布，跳过"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 发布到 GitHub Release
+        run: |
+          gh release create latest \
+            --title "说记 v${{ steps.ver.outputs.version }} (build ${{ steps.ver.outputs.build }})" \
+            --notes "自动构建 · commit ${{ github.sha }}
+
+          | 文件 | 适用设备 |
+          | --- | --- |
+          | app-arm64-v8a-release.apk | 绝大多数现代安卓手机（推荐） |
+          | app-armeabi-v7a-release.apk | 老旧 32 位设备 |
+          | app-x86_64-release.apk | 模拟器 / x86 平板 |" \
+            --prerelease \
+            build/app/outputs/flutter-apk/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
