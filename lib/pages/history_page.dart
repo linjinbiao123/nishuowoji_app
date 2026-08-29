@@ -493,7 +493,7 @@ class HistoryPageState extends State<HistoryPage> {
                 child: Container(
                   margin: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : (isToday ? AppColors.primary.withOpacity(0.15) : Colors.transparent),
+                    color: isSelected ? AppColors.primary : (isToday ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -584,7 +584,7 @@ class HistoryPageState extends State<HistoryPage> {
             Container(
               width: 40, height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -604,7 +604,7 @@ class HistoryPageState extends State<HistoryPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFB020).withOpacity(0.18),
+                            color: const Color(0xFFFFB020).withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text('发票', style: TextStyle(
@@ -617,7 +617,7 @@ class HistoryPageState extends State<HistoryPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _accountTagColor(name).withOpacity(0.1),
+                          color: _accountTagColor(name).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(name, style: TextStyle(
@@ -717,7 +717,7 @@ class HistoryPageState extends State<HistoryPage> {
               Container(
                 width: 52, height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.danger.withOpacity(0.1),
+                  color: AppColors.danger.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.delete_outline, color: AppColors.danger, size: 26),

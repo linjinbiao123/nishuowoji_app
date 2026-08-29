@@ -86,9 +86,9 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
               decoration: BoxDecoration(
                 color: AppThemeMode.isLight
                     ? const Color(0xFF323232)
-                    : theme.base[1].withOpacity(0.96),
+                    : theme.base[1].withValues(alpha: 0.96),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: theme.accent.withOpacity(0.35)),
+                border: Border.all(color: theme.accent.withValues(alpha: 0.35)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -121,7 +121,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
         decoration: BoxDecoration(
           color: theme.base[1],
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: theme.accent.withOpacity(0.5), width: 2)),
+          border: Border(top: BorderSide(color: theme.accent.withValues(alpha: 0.5), width: 2)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -160,7 +160,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
                   decoration: BoxDecoration(
                     color: AppDark.cardBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.accent.withOpacity(0.3)),
+                    border: Border.all(color: theme.accent.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -207,7 +207,7 @@ class _VipActivateSheetState extends State<VipActivateSheet> {
                   onPressed: _busy ? null : _activate,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.accent,
-                    disabledBackgroundColor: theme.accent.withOpacity(0.5),
+                    disabledBackgroundColor: theme.accent.withValues(alpha: 0.5),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -246,7 +246,7 @@ class VipLockScreen extends StatelessWidget {
                 Container(
                   width: 76, height: 76,
                   decoration: BoxDecoration(
-                    color: theme.accent.withOpacity(0.12),
+                    color: theme.accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.lock_outline, size: 38, color: theme.accent),

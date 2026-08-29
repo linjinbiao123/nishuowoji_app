@@ -305,12 +305,12 @@ class _DataStatsPageState extends State<DataStatsPage> {
                               },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSel ? AppColors.success : Colors.white.withOpacity(0.06),
+                            color: isSel ? AppColors.success : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: isSel
                                   ? AppColors.success
-                                  : (isNow ? AppColors.success.withOpacity(0.5) : AppDark.divider),
+                                  : (isNow ? AppColors.success.withValues(alpha: 0.5) : AppDark.divider),
                             ),
                           ),
                           child: Center(
@@ -382,12 +382,12 @@ class _DataStatsPageState extends State<DataStatsPage> {
                               },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSel ? AppColors.success : Colors.white.withOpacity(0.06),
+                            color: isSel ? AppColors.success : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: isSel
                                   ? AppColors.success
-                                  : (isNow ? AppColors.success.withOpacity(0.5) : AppDark.divider),
+                                  : (isNow ? AppColors.success.withValues(alpha: 0.5) : AppDark.divider),
                             ),
                           ),
                           child: Center(
@@ -419,12 +419,12 @@ class _DataStatsPageState extends State<DataStatsPage> {
       child: Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.07),
+          color: Colors.white.withValues(alpha: 0.07),
           shape: BoxShape.circle,
           border: Border.all(color: AppDark.divider),
         ),
         child: Icon(icon, size: 18,
-          color: onTap != null ? Colors.white : AppDark.hint.withOpacity(0.6)),
+          color: onTap != null ? Colors.white : AppDark.hint.withValues(alpha: 0.6)),
       ),
     );
   }
@@ -515,7 +515,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                       : null,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: selected
-                      ? [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                      ? [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]
                       : null,
                 ),
                 child: Center(
@@ -585,7 +585,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
           border: Border.all(color: AppDark.divider),
         ),
         child: Icon(icon, size: 20,
-          color: enabled ? AppDark.title : AppDark.hint.withOpacity(0.6)),
+          color: enabled ? AppDark.title : AppDark.hint.withValues(alpha: 0.6)),
       ),
     );
   }
@@ -600,7 +600,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.25), blurRadius: 14, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.25), blurRadius: 14, offset: const Offset(0, 5))],
       ),
       child: Row(
         children: [
@@ -668,7 +668,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6C5CE7).withOpacity(0.1),
+                  color: const Color(0xFF6C5CE7).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -714,7 +714,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                             final dimmed = _selectedCategory != null && !selected;
                             return PieChartSectionData(
                               value: e.value,
-                              color: _colorOf(e.key, idx).withOpacity(dimmed ? 0.25 : 1),
+                              color: _colorOf(e.key, idx).withValues(alpha: dimmed ? 0.25 : 1),
                               radius: selected ? 27 : 21,
                               showTitle: false,
                             );
@@ -754,7 +754,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                           padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 6),
                           margin: const EdgeInsets.only(bottom: 2),
                           decoration: BoxDecoration(
-                            color: selected ? color.withOpacity(0.1) : Colors.transparent,
+                            color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -795,7 +795,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0984E3).withOpacity(0.1),
+                  color: const Color(0xFF0984E3).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -829,7 +829,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                       }
                     },
                     touchTooltipData: BarTouchTooltipData(
-                      tooltipBgColor: const Color(0xFF1E293B).withOpacity(0.95),
+                      tooltipBgColor: const Color(0xFF1E293B).withValues(alpha: 0.95),
                       getTooltipItem: (group, gi, rod, ri) {
                         if (rod.toY == 0) return null;
                         return BarTooltipItem(
@@ -877,8 +877,8 @@ class _DataStatsPageState extends State<DataStatsPage> {
                       barRods: [BarChartRodData(
                         toY: b.value,
                         color: b.value == 0
-                            ? const Color(0xFF0984E3).withOpacity(0.12)
-                            : const Color(0xFF0984E3).withOpacity(dimmed ? 0.3 : (selected ? 1 : 0.85)),
+                            ? const Color(0xFF0984E3).withValues(alpha: 0.12)
+                            : const Color(0xFF0984E3).withValues(alpha: dimmed ? 0.3 : (selected ? 1 : 0.85)),
                         width: _dim == 1 ? 6 : 14,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                       )],
@@ -924,7 +924,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
         children: [
           Container(
             width: 34, height: 34,
-            decoration: BoxDecoration(color: color.withOpacity(0.14), borderRadius: BorderRadius.circular(9)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(9)),
             child: Icon(icon, size: 17, color: color),
           ),
           const SizedBox(width: 10),
@@ -955,7 +955,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
         padding: const EdgeInsets.symmetric(vertical: 34),
         child: Column(
           children: [
-            Icon(Icons.inbox_outlined, size: 38, color: AppDark.hint.withOpacity(0.7)),
+            Icon(Icons.inbox_outlined, size: 38, color: AppDark.hint.withValues(alpha: 0.7)),
             const SizedBox(height: 8),
             Text(text, style: TextStyle(fontSize: 12.5, color: AppDark.hint)),
           ],
@@ -984,13 +984,13 @@ class _DataStatsPageState extends State<DataStatsPage> {
             decoration: BoxDecoration(
               color: AppDark.cardBg,
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFF0984E3).withOpacity(0.35)),
+              border: Border.all(color: const Color(0xFF0984E3).withValues(alpha: 0.35)),
             ),
             child: Row(
               children: [
                 Container(
                   width: 38, height: 38,
-                  decoration: BoxDecoration(color: const Color(0xFF0984E3).withOpacity(0.13), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: const Color(0xFF0984E3).withValues(alpha: 0.13), borderRadius: BorderRadius.circular(10)),
                   child: const Icon(Icons.file_download_outlined, size: 20, color: Color(0xFF0984E3)),
                 ),
                 const SizedBox(width: 12),
@@ -1085,12 +1085,12 @@ class _DataStatsPageState extends State<DataStatsPage> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
             Container(
               width: 32, height: 32,
-              decoration: BoxDecoration(color: color.withOpacity(0.14), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, size: 17, color: color),
             ),
             const SizedBox(width: 10),

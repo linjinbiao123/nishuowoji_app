@@ -313,11 +313,11 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppThemeMode.isLight
           ? const Color(0xFF323232)
-          : _theme.base[1].withOpacity(0.96),
+          : _theme.base[1].withValues(alpha: 0.96),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _theme.accent.withOpacity(0.35)),
+        side: BorderSide(color: _theme.accent.withValues(alpha: 0.35)),
       ),
       duration: const Duration(seconds: 2),
     ));
@@ -332,7 +332,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
       decoration: BoxDecoration(
         color: theme.base[1],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: theme.accent.withOpacity(0.5), width: 2)),
+        border: Border(top: BorderSide(color: theme.accent.withValues(alpha: 0.5), width: 2)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       child: Column(
@@ -354,7 +354,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: theme.accent.withOpacity(0.15),
+                  color: theme.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text('离线识别', style: TextStyle(fontSize: 11, color: AppDark.sub)),
@@ -450,7 +450,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.danger.withOpacity(0.12),
+            color: AppColors.danger.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -479,7 +479,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
                   shape: BoxShape.circle,
                   color: _stage == _Stage.recording
                       ? theme.accent
-                      : theme.accent.withOpacity(0.15),
+                      : theme.accent.withValues(alpha: 0.15),
                   border: Border.all(color: theme.accent, width: 2),
                 ),
                 child: Icon(
@@ -576,7 +576,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: selected ? c.color.withOpacity(0.15) : AppDark.cardBg,
+                    color: selected ? c.color.withValues(alpha: 0.15) : AppDark.cardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: selected ? c.color : AppDark.divider),
                   ),
@@ -636,7 +636,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.15) : AppDark.cardBg,
+            color: selected ? color.withValues(alpha: 0.15) : AppDark.cardBg,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: selected ? color : AppDark.divider),
           ),

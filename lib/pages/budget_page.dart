@@ -170,7 +170,7 @@ class BudgetPageState extends State<BudgetPage> {
           Container(
             width: 60, height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.12),
+              color: const Color(0xFF10B981).withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.lock_outline, size: 30, color: Color(0xFF10B981)),
@@ -360,7 +360,7 @@ class BudgetPageState extends State<BudgetPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: theme.accent.withOpacity(0.14),
+                    color: theme.accent.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -382,7 +382,7 @@ class BudgetPageState extends State<BudgetPage> {
                 Container(
                   width: 34, height: 34,
                   decoration: BoxDecoration(
-                    color: theme.accent.withOpacity(0.12),
+                    color: theme.accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: _accountIcon(a.icon, theme.accent, 18),
@@ -614,7 +614,7 @@ class BudgetPageState extends State<BudgetPage> {
                     hintText: '输入月预算金额',
                     hintStyle: TextStyle(color: AppDark.hint),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.08),
+                    fillColor: Colors.white.withValues(alpha: 0.08),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -631,7 +631,7 @@ class BudgetPageState extends State<BudgetPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: DropdownButtonHideUnderline(
@@ -665,7 +665,7 @@ class BudgetPageState extends State<BudgetPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
+                            color: Colors.white.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Center(child: Text('取消', style: TextStyle(
@@ -776,7 +776,7 @@ class BudgetPageState extends State<BudgetPage> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: c.color.withOpacity(0.15),
+                    color: c.color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(c.icon, color: c.color, size: 19),
@@ -796,7 +796,7 @@ class BudgetPageState extends State<BudgetPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                               decoration: BoxDecoration(
-                                color: AppColors.danger.withOpacity(0.15),
+                                color: AppColors.danger.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text('超支', style: TextStyle(
@@ -877,7 +877,7 @@ class BudgetPageState extends State<BudgetPage> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: c.color.withOpacity(0.15),
+                      color: c.color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(c.icon, size: 19, color: c.color),
@@ -898,7 +898,7 @@ class BudgetPageState extends State<BudgetPage> {
                   hintText: '输入预算金额，留空则清除',
                   hintStyle: TextStyle(color: AppDark.hint),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withValues(alpha: 0.08),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -915,7 +915,7 @@ class BudgetPageState extends State<BudgetPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(child: Text('取消', style: TextStyle(

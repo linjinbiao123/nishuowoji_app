@@ -403,8 +403,8 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: _isExpense
-                            ? AppColors.danger.withOpacity(0.12)
-                            : AppColors.success.withOpacity(0.12),
+                            ? AppColors.danger.withValues(alpha: 0.12)
+                            : AppColors.success.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -567,7 +567,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: _accountId == null ? theme.accent.withOpacity(0.18) : Colors.white.withOpacity(0.08),
+                      color: _accountId == null ? theme.accent.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: _accountId == null ? theme.accent : AppDark.divider),
                     ),
@@ -591,7 +591,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: selected ? theme.accent.withOpacity(0.18) : Colors.white.withOpacity(0.08),
+                        color: selected ? theme.accent.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: selected ? theme.accent : AppDark.divider),
                       ),
@@ -648,7 +648,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: selected ? c.color : Colors.white.withOpacity(0.08),
+                          color: selected ? c.color : Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: selected ? Colors.transparent : AppDark.divider),
                         ),
@@ -679,7 +679,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: selected ? Categories.customColor : Colors.white.withOpacity(0.08),
+                          color: selected ? Categories.customColor : Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: _deletingCat == name ? AppColors.danger : (selected ? Colors.transparent : AppDark.divider)),
                         ),
@@ -724,7 +724,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppDark.divider),
                       ),
@@ -763,7 +763,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
             hintText: '输入分类名称',
             hintStyle: TextStyle(color: AppDark.hint),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.08),
+            fillColor: Colors.white.withValues(alpha: 0.08),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),

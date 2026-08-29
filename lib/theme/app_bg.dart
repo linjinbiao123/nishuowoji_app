@@ -67,8 +67,8 @@ class AppDark {
   // 弹窗/对话框背景保持深色（不随主题变浅），其内部白字天然可见，避免逐弹窗改色
   static Color get surface => const Color(0xFF18212F);
   // 卡片背景/边框：浅色主题用白底浅灰边，深色主题用半透明白
-  static Color get cardBg => _light ? Colors.white : Colors.white.withOpacity(0.07);
-  static Color get cardBorder => _light ? const Color(0xFFE5E7EB) : Colors.white.withOpacity(0.10);
+  static Color get cardBg => _light ? Colors.white : Colors.white.withValues(alpha: 0.07);
+  static Color get cardBorder => _light ? const Color(0xFFE5E7EB) : Colors.white.withValues(alpha: 0.10);
 }
 
 /// 全局深色背景：渐变底 + 环境光晕，[child] 叠在其上。
@@ -140,7 +140,7 @@ class _Glow extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color.withOpacity(opacity), color.withOpacity(0)],
+          colors: [color.withValues(alpha: opacity), color.withValues(alpha: 0)],
         ),
       ),
     );
@@ -169,7 +169,7 @@ class GlassCard extends StatelessWidget {
             border: Border.all(color: const Color(0xFFE5E7EB)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.10),
+                color: Colors.black.withValues(alpha: 0.10),
                 blurRadius: 16,
                 offset: const Offset(0, 5),
               ),
@@ -187,9 +187,9 @@ class GlassCard extends StatelessWidget {
           width: double.infinity,
           padding: padding ?? const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07),
+            color: Colors.white.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: Colors.white.withOpacity(0.10)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
           child: child,
         ),

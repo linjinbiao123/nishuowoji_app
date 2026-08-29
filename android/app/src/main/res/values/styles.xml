@@ -15,4 +15,15 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+
+    <!-- 快捷记账弹窗：窗口全透明 + 背景变暗，营造"悬浮弹窗"观感。
+         注意：Flutter 侧还需 getTransparencyMode() 返回 transparent，
+         否则 Flutter 会绘制不透明底色，把这里配的透明效果盖掉。 -->
+    <style name="QuickAddTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
 </resources>

@@ -380,7 +380,7 @@ class _ReceiptGalleryPageState extends State<ReceiptGalleryPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.55),
+                          color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text('${r.images.length}', style: const TextStyle(
@@ -438,7 +438,7 @@ class _ReceiptGalleryPageState extends State<ReceiptGalleryPage> {
                   Container(
                     width: 38, height: 38,
                     decoration: BoxDecoration(
-                      color: _colorOf(r.category).withOpacity(0.18),
+                      color: _colorOf(r.category).withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(_iconOf(r.category),
@@ -467,7 +467,7 @@ class _ReceiptGalleryPageState extends State<ReceiptGalleryPage> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: _invoiceColor.withOpacity(0.18),
+                                  color: _invoiceColor.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text('发票', style: TextStyle(

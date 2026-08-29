@@ -21,7 +21,7 @@ class VipService {
     String raw;
     try {
       final info = await DeviceInfoPlugin().androidInfo;
-      raw = (info.id ?? '').isEmpty ? 'unknown_device' : info.id!;
+      raw = info.id.isEmpty ? 'unknown_device' : info.id;
     } catch (_) {
       raw = 'unknown_device';
     }

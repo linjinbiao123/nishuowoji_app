@@ -391,7 +391,7 @@ class StatsPageState extends State<StatsPage> {
                     Container(
                       width: 36, height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -423,9 +423,9 @@ class StatsPageState extends State<StatsPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: accent.withOpacity(0.15),
+                              color: accent.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: accent.withOpacity(0.4)),
+                              border: Border.all(color: accent.withValues(alpha: 0.4)),
                             ),
                             child: Text('今天', style: TextStyle(
                               color: accent, fontSize: 12, fontWeight: FontWeight.w700,
@@ -447,7 +447,7 @@ class StatsPageState extends State<StatsPage> {
                       children: ['日', '一', '二', '三', '四', '五', '六'].map((d) =>
                         Expanded(child: Center(
                           child: Text(d, style: TextStyle(
-                            fontSize: 12, color: Colors.white.withOpacity(0.4), fontWeight: FontWeight.w600,
+                            fontSize: 12, color: Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.w600,
                           )),
                         ))
                       ).toList(),
@@ -489,7 +489,7 @@ class StatsPageState extends State<StatsPage> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
-                                    color: isToday ? Colors.white : Colors.white.withOpacity(0.85),
+                                    color: isToday ? Colors.white : Colors.white.withValues(alpha: 0.85),
                                   ),
                                 ),
                                 const SizedBox(height: 1),
@@ -512,7 +512,7 @@ class StatsPageState extends State<StatsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text('点击任意日期查看当天记录', style: TextStyle(
-                      fontSize: 11.5, color: Colors.white.withOpacity(0.4),
+                      fontSize: 11.5, color: Colors.white.withValues(alpha: 0.4),
                     )),
                   ],
                 ),
@@ -551,7 +551,7 @@ class StatsPageState extends State<StatsPage> {
                     Container(
                       width: 36, height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -597,14 +597,14 @@ class StatsPageState extends State<StatsPage> {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? accent
-                                  : Colors.white.withOpacity(0.06),
+                                  : Colors.white.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isSelected
                                     ? accent
                                     : (isCurrent
-                                        ? accent.withOpacity(0.5)
-                                        : Colors.white.withOpacity(0.10)),
+                                        ? accent.withValues(alpha: 0.5)
+                                        : Colors.white.withValues(alpha: 0.10)),
                               ),
                             ),
                             child: Center(
@@ -615,7 +615,7 @@ class StatsPageState extends State<StatsPage> {
                                   fontWeight: isSelected || isCurrent ? FontWeight.w800 : FontWeight.w600,
                                   color: isSelected
                                       ? Colors.white
-                                      : (isCurrent ? accent : Colors.white.withOpacity(0.8)),
+                                      : (isCurrent ? accent : Colors.white.withValues(alpha: 0.8)),
                                 ),
                               ),
                             ),
@@ -639,11 +639,11 @@ class StatsPageState extends State<StatsPage> {
       child: Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.07),
+          color: Colors.white.withValues(alpha: 0.07),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.10)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
         ),
-        child: Icon(icon, size: 18, color: Colors.white.withOpacity(0.75)),
+        child: Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.75)),
       ),
     );
   }
@@ -819,13 +819,13 @@ class StatsPageState extends State<StatsPage> {
             }
           },
           touchTooltipData: BarTouchTooltipData(
-            tooltipBgColor: const Color(0xFF1E293B).withOpacity(0.95),
+            tooltipBgColor: const Color(0xFF1E293B).withValues(alpha: 0.95),
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               if (rod.toY == 0) return null;
               final unit = _isMonthly ? '日' : '月';
               return BarTooltipItem(
                 '${group.x}$unit\n',
-                TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+                TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
                 children: [
                   TextSpan(
                     text: '¥${rod.toY.toStringAsFixed(2)}',
@@ -895,7 +895,7 @@ class StatsPageState extends State<StatsPage> {
             barRods: [
               BarChartRodData(
                 toY: amount,
-                color: amount != 0 ? color : color.withOpacity(0.12),
+                color: amount != 0 ? color : color.withValues(alpha: 0.12),
                 width: range > 14 ? 6 : (range > 7 ? 10 : 16),
                 borderRadius: amount >= 0
                     ? const BorderRadius.vertical(top: Radius.circular(4))
@@ -938,7 +938,7 @@ class StatsPageState extends State<StatsPage> {
                   Container(
                     width: 36, height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -949,7 +949,7 @@ class StatsPageState extends State<StatsPage> {
                         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
                       const Spacer(),
                       Text('共${dayRecords.length}笔',
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
                     ],
                   ),
                 ],
@@ -960,7 +960,7 @@ class StatsPageState extends State<StatsPage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
                 child: Text('当天无记录', style: TextStyle(
-                  color: Colors.white.withOpacity(0.4), fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.4), fontSize: 14,
                 )),
               )
             else
@@ -977,7 +977,7 @@ class StatsPageState extends State<StatsPage> {
                           Container(
                             width: 38, height: 38,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
+                              color: Colors.white.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Center(
@@ -997,7 +997,7 @@ class StatsPageState extends State<StatsPage> {
                                 )),
                                 if (r.note != r.category)
                                   Text(r.note, style: TextStyle(
-                                    color: Colors.white.withOpacity(0.5), fontSize: 12,
+                                    color: Colors.white.withValues(alpha: 0.5), fontSize: 12,
                                   )),
                               ],
                             ),
@@ -1014,7 +1014,7 @@ class StatsPageState extends State<StatsPage> {
                               ),
                               Text(
                                 '${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}',
-                                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11),
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11),
                               ),
                             ],
                           ),
@@ -1170,7 +1170,7 @@ class StatsPageState extends State<StatsPage> {
                     Container(
                       width: 22, height: 22,
                       decoration: BoxDecoration(
-                      color: index < 3 ? color.withOpacity(0.22) : AppDark.cardBg,
+                      color: index < 3 ? color.withValues(alpha: 0.22) : AppDark.cardBg,
                       borderRadius: BorderRadius.circular(7),
                     ),
                     child: Center(

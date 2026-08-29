@@ -123,7 +123,7 @@ class SettingsPageState extends State<SettingsPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppDark.divider),
                 ),
@@ -158,7 +158,7 @@ class SettingsPageState extends State<SettingsPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppDark.divider),
                   ),
@@ -253,11 +253,11 @@ class SettingsPageState extends State<SettingsPage> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppThemeMode.isLight
             ? const Color(0xFF323232)
-            : theme.base[1].withOpacity(0.96),
+            : theme.base[1].withValues(alpha: 0.96),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: theme.accent.withOpacity(0.35)),
+          side: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
         ),
         duration: const Duration(seconds: 2),
       ),
@@ -296,7 +296,7 @@ class SettingsPageState extends State<SettingsPage> {
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.16),
+                color: AppColors.primary.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(Icons.notifications_outlined,
@@ -317,7 +317,7 @@ class SettingsPageState extends State<SettingsPage> {
             Switch(
               value: _reminderEnabled,
               onChanged: _toggleReminder,
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
             ),
           ],
         ),
@@ -360,7 +360,7 @@ class SettingsPageState extends State<SettingsPage> {
                       Container(
                         width: 38, height: 38,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(11),
                         ),
                         child: Icon(Icons.palette_outlined,
@@ -436,7 +436,7 @@ class SettingsPageState extends State<SettingsPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(colors: [
-                      t.glows[0].withOpacity(0.5), t.glows[0].withOpacity(0),
+                      t.glows[0].withValues(alpha: 0.5), t.glows[0].withValues(alpha: 0),
                     ]),
                   ),
                 ),
@@ -448,7 +448,7 @@ class SettingsPageState extends State<SettingsPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(colors: [
-                      t.glows[1].withOpacity(0.4), t.glows[1].withOpacity(0),
+                      t.glows[1].withValues(alpha: 0.4), t.glows[1].withValues(alpha: 0),
                     ]),
                   ),
                 ),
@@ -459,9 +459,9 @@ class SettingsPageState extends State<SettingsPage> {
                 child: Container(
                   height: 26,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.10),
+                    color: Colors.white.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                   ),
                 ),
               ),
@@ -657,7 +657,7 @@ class SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(color: Colors.white, fontSize: 13),
                   )),
                   behavior: SnackBarBehavior.floating,
-                  backgroundColor: const Color(0xFF10B981).withOpacity(0.95),
+                  backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.95),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   duration: const Duration(seconds: 2),
@@ -706,7 +706,7 @@ class SettingsPageState extends State<SettingsPage> {
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.16),
+                color: iconColor.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: iconColor, size: 20),
@@ -836,7 +836,7 @@ class SettingsPageState extends State<SettingsPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
+                            color: Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: deletingCat == name ? AppColors.danger : AppDark.divider),
                           ),
@@ -893,7 +893,7 @@ class SettingsPageState extends State<SettingsPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
+                            color: Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: deletingCat == name ? AppColors.danger : AppDark.divider),
                           ),
@@ -948,7 +948,7 @@ class SettingsPageState extends State<SettingsPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.06),
+                              color: Colors.white.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: deletingCat == name ? AppColors.danger : AppDark.divider),
                             ),
@@ -1008,9 +1008,9 @@ class SettingsPageState extends State<SettingsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF10B981).withOpacity(0.06),
+          color: const Color(0xFF10B981).withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.45)),
+          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.45)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -1044,7 +1044,7 @@ class SettingsPageState extends State<SettingsPage> {
             hintText: '输入分类名称',
             hintStyle: TextStyle(color: AppDark.hint),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.08),
+            fillColor: Colors.white.withValues(alpha: 0.08),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
@@ -1096,7 +1096,7 @@ class SettingsPageState extends State<SettingsPage> {
               Container(
                 width: 52, height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.danger.withOpacity(0.1),
+                  color: AppColors.danger.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.warning_amber, color: AppColors.danger, size: 26),
@@ -1121,7 +1121,7 @@ class SettingsPageState extends State<SettingsPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(

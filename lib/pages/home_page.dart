@@ -250,7 +250,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Center(child: Text(msg, style: TextStyle(color: Colors.white, fontSize: 13))),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: const Color(0xFF10B981).withOpacity(0.95),
+      backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.95),
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       duration: const Duration(seconds: 2),
@@ -503,9 +503,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.35)),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -577,9 +577,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: isCurrent ? color.withOpacity(0.08) : Colors.white.withOpacity(0.06),
+                        color: isCurrent ? color.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isCurrent ? color.withOpacity(0.5) : AppDark.divider),
+                        border: Border.all(color: isCurrent ? color.withValues(alpha: 0.5) : AppDark.divider),
                       ),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
@@ -596,7 +596,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             children: [
                               Container(
                                 width: 38, height: 38,
-                                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                                 child: Icon(Icons.menu_book, size: 19, color: color),
                               ),
                               const SizedBox(width: 12),
@@ -646,7 +646,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                 ),
                                 child: Container(
                                   width: 32, height: 32,
-                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(9), border: Border.all(color: AppDark.divider)),
+                                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(9), border: Border.all(color: AppDark.divider)),
                                   child: Icon(Icons.edit_outlined, size: 15, color: AppDark.sub),
                                 ),
                               ),
@@ -684,9 +684,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4), style: BorderStyle.solid),
+                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4), style: BorderStyle.solid),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -732,7 +732,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             children: [
               Container(
                 width: 52, height: 52,
-                decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: AppColors.danger.withValues(alpha: 0.1), shape: BoxShape.circle),
                 child: Icon(Icons.delete_outline, color: AppColors.danger, size: 26),
               ),
               const SizedBox(height: 14),
@@ -749,7 +749,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       onTap: () => Navigator.pop(ctx),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
                         child: const Center(child: Text('取消', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
                       ),
                     ),
@@ -799,7 +799,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   children: [
                     Container(
                       width: 36, height: 36,
-                      decoration: BoxDecoration(color: Color(selectedColor).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                      decoration: BoxDecoration(color: Color(selectedColor).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                       child: Icon(Icons.menu_book, size: 19, color: Color(selectedColor)),
                     ),
                     const SizedBox(width: 10),
@@ -818,7 +818,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     hintText: '如：旅行基金、宝宝账本',
                     hintStyle: TextStyle(color: AppDark.hint, fontSize: 14),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.08),
+                    fillColor: Colors.white.withValues(alpha: 0.08),
                     counterText: '',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   ),
@@ -841,7 +841,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: selected ? 2.5 : 0),
                           boxShadow: [
-                            BoxShadow(color: Color(c).withOpacity(selected ? 0.5 : 0.2), blurRadius: selected ? 8 : 3),
+                            BoxShadow(color: Color(c).withValues(alpha: selected ? 0.5 : 0.2), blurRadius: selected ? 8 : 3),
                           ],
                         ),
                         child: selected ? Icon(Icons.check, size: 17, color: Colors.white) : null,
@@ -860,7 +860,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         },
                         child: Container(
                           width: 44, height: 44,
-                          decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(color: AppColors.danger.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                           child: Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
                         ),
                       ),
@@ -871,7 +871,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         onTap: () => Navigator.pop(ctx),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
                           child: const Center(child: Text('取消', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white))),
                         ),
                       ),
@@ -1177,7 +1177,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 22),
@@ -1197,7 +1197,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _accountTagColor(name).withOpacity(0.1),
+                          color: _accountTagColor(name).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -1350,7 +1350,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             decoration: BoxDecoration(
               color: AppDark.surface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.10)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -1379,7 +1379,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       color: isExpense ? AppColors.danger : AppColors.success,
                     ),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.08),
+                    fillColor: Colors.white.withValues(alpha: 0.08),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
@@ -1397,7 +1397,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: isExpense ? AppColors.danger.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                            color: isExpense ? AppColors.danger.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: isExpense ? AppColors.danger : AppDark.divider),
                           ),
@@ -1418,7 +1418,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: !isExpense ? AppColors.success.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                            color: !isExpense ? AppColors.success.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: !isExpense ? AppColors.success : AppDark.divider),
                           ),
@@ -1467,7 +1467,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: selected ? color.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                            color: selected ? color.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: selected ? color : AppDark.divider),
                           ),
@@ -1494,7 +1494,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
+                          color: Colors.white.withValues(alpha: 0.06),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppDark.divider, style: BorderStyle.solid),
                         ),
@@ -1523,7 +1523,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     hintText: '输入备注',
                     hintStyle: TextStyle(color: AppDark.hint),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.08),
+                    fillColor: Colors.white.withValues(alpha: 0.08),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
@@ -1629,7 +1629,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             hintText: '输入分类名称',
             hintStyle: TextStyle(color: AppDark.hint),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.08),
+            fillColor: Colors.white.withValues(alpha: 0.08),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),

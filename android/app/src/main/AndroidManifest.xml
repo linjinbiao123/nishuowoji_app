@@ -36,6 +36,35 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- 快捷记账弹窗：透明 Activity，浮在任意界面之上只显示底部记账卡片。
+             taskAffinity 独立 + excludeFromRecents，确保它不会带着主界面一起出现在
+             最近任务列表里（用户感知是"弹窗"而非"打开了一个 App 页面"）。 -->
+        <activity
+            android:name=".QuickAddActivity"
+            android:exported="false"
+            android:theme="@style/QuickAddTheme"
+            android:launchMode="singleTop"
+            android:taskAffinity="com.example.nishuowoji_app.quickadd"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true" />
+
+        <!-- 快捷设置磁贴（通知栏下拉的"快速记账"开关）。
+             API 24 才支持，minSdk 保持 23 不影响：低版本系统根本没有磁贴功能，
+             不会去加载这个 Service。 -->
+        <service
+            android:name=".QuickAddTileService"
+            android:exported="true"
+            android:label="@string/quick_add_tile_label"
+            android:icon="@drawable/ic_qs_quick_add"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
