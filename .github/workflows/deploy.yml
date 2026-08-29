@@ -23,9 +23,11 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17.x'
+      # 必须与本地开发环境（.devcontainer/setup-flutter.sh）保持一致。
+      # 旧值 3.35.1 低于 pubspec.lock 要求的 flutter >=3.44.0，会导致 pub get 失败。
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.1'
+          flutter-version: '3.47.2'
           channel: 'stable'
 
       - name: 恢复 keystore
