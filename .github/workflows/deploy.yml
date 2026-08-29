@@ -64,16 +64,17 @@ jobs:
       # 上传到 Release 而非 artifact：
       # Actions 的 artifact 配额仅 500MB，全架构包几次就撑满且 6-12 小时才重算；
       # Release 走仓库存储配额（1GB）且可长期保留。
-      # 固定使用 latest 标签，先删旧版再发布，避免历史产物累积。
-      # 下载链接保持不变，便于长期使用。
-      - name: 清理旧的 latest 发布
-        run: gh release delete latest --yes --cleanup-tag 2>/dev/null || echo "尚无旧的 latest 发布，跳过"
+      #
+      # 注意：tag 必须用版本号，不能用 "latest"——
+      # 后者与 GitHub 的 /releases/latest 路径冲突，会导致下载链接 404。
+      - name: 清理同名旧发布
+        run: gh release delete "v${{ steps.ver.outputs.version }}" --yes --cleanup-tag 2>/dev/null || echo "尚无同名发布，跳过"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 发布到 GitHub Release
         run: |
-          gh release create latest \
+          gh release create "v${{ steps.ver.outputs.version }}" \
             --title "说记 v${{ steps.ver.outputs.version }} (build ${{ steps.ver.outputs.build }})" \
             --notes "自动构建 · commit ${{ github.sha }}
 
