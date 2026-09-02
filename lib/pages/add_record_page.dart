@@ -782,8 +782,9 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                   _category = name;
                 });
                 setSheetState(() {});
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx);
-                Navigator.pop(sheetCtx);
+                if (sheetCtx.mounted) Navigator.pop(sheetCtx);
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),

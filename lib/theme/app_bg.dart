@@ -1,19 +1,31 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
-/// 全局背景主题（深色底 + 环境光晕）
+import 'bg_painters.dart';
+
+/// 全局背景主题
 class AppBgTheme {
   final String name;
   final List<Color> base; // 底层渐变（左上 → 右下）
   final List<Color> glows; // 两个环境光晕颜色
   final Color accent; // 强调色（FAB/按钮等品牌元素跟随主题）
   final bool isLight; // 是否为浅色（亮色）主题
+
+  /// 背景渲染风格。glow 为原有的渐变光晕，其余为新增的绘制方案。
+  final BgStyle style;
+
+  /// 动效周期。数值越大越沉稳；新增主题刻意放在 20 秒以上，
+  /// 观感是材质在缓慢流动，而不是界面在播放动画。
+  final Duration motion;
+
   const AppBgTheme({
     required this.name,
     required this.base,
     required this.glows,
     required this.accent,
     this.isLight = false,
+    this.style = BgStyle.glow,
+    this.motion = const Duration(seconds: 18),
   });
 
   /// 直接贴在背景上的主文字颜色（浅色主题用深字，深色主题用白字）
@@ -52,6 +64,36 @@ class AppBgTheme {
       glows: [Color(0xFFF472B6), Color(0xFFFB7185)],
       accent: Color(0xFFEC4899),
     ),
+
+    // ── 以下为「中式账簿」系列 ──
+    // 不再使用渐变光晕，改由各自的绘制器渲染：
+    // 宣纸取账本的纸与朱印，水墨取墨滴化开，算盘取算珠浮动。
+
+    AppBgTheme(
+      name: '宣纸',
+      base: [Color(0xFFF6F2E9), Color(0xFFE9E2D3)],
+      glows: [Color(0xFFB03A2E), Color(0xFF8C7A5B)],
+      accent: Color(0xFFB03A2E), // 朱砂
+      isLight: true,
+      style: BgStyle.paper,
+      motion: const Duration(seconds: 34),
+    ),
+    AppBgTheme(
+      name: '水墨',
+      base: [Color(0xFF0B0A09), Color(0xFF15120F)],
+      glows: [Color(0xFF2B2723), Color(0xFF1C2530)],
+      accent: Color(0xFFC9A227), // 泥金
+      style: BgStyle.ink,
+      motion: const Duration(seconds: 26),
+    ),
+    AppBgTheme(
+      name: '算盘',
+      base: [Color(0xFF17110C), Color(0xFF201810)],
+      glows: [Color(0xFF8A5A2B), Color(0xFFA63A2E)],
+      accent: Color(0xFFC87F3A), // 木色
+      style: BgStyle.abacus,
+      motion: const Duration(seconds: 22),
+    ),
   ];
 }
 
@@ -71,7 +113,10 @@ class AppDark {
   static Color get cardBorder => _light ? const Color(0xFFE5E7EB) : Colors.white.withValues(alpha: 0.10);
 }
 
-/// 全局深色背景：渐变底 + 环境光晕，[child] 叠在其上。
+/// 全局背景：[child] 叠在其上。
+///
+/// glow 风格走原有的渐变光晕；其余风格交由对应的绘制器渲染，
+/// 每种风格有独立的材质与动效。
 class AppBackground extends StatelessWidget {
   final AppBgTheme theme;
   final Widget child;
@@ -79,6 +124,14 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (theme.style != BgStyle.glow) {
+      return Stack(
+        children: [
+          Positioned.fill(child: _PaintedBg(theme: theme)),
+          child,
+        ],
+      );
+    }
     if (theme.isLight) {
       // 浅色主题：纯白背景，不叠加彩色光晕（真·白底黑字）
       return Stack(
@@ -121,6 +174,76 @@ class AppBackground extends StatelessWidget {
         child,
       ],
     );
+  }
+}
+
+/// 驱动绘制类背景的动画容器。
+///
+/// 以 [AppBgTheme.motion] 为周期反复播放，绘制器据此得到 0~1 的进度。
+/// 背景自带 RepaintBoundary 语义，重绘不会波及上层内容。
+class _PaintedBg extends StatefulWidget {
+  final AppBgTheme theme;
+  const _PaintedBg({required this.theme});
+
+  @override
+  State<_PaintedBg> createState() => _PaintedBgState();
+}
+
+class _PaintedBgState extends State<_PaintedBg>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: widget.theme.motion)
+      ..repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PaintedBg old) {
+    super.didUpdateWidget(old);
+    // 切换主题时按新主题的节奏重新计时
+    if (old.theme.motion != widget.theme.motion ||
+        old.theme.style != widget.theme.style) {
+      _ctrl.duration = widget.theme.motion;
+      _ctrl
+        ..reset()
+        ..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => RepaintBoundary(
+        child: CustomPaint(
+          painter: _painterFor(widget.theme, _ctrl.value),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+
+  CustomPainter _painterFor(AppBgTheme t, double v) {
+    switch (t.style) {
+      case BgStyle.paper:
+        return PaperBgPainter(t: v, lineColor: t.glows[0], fiberColor: t.glows[1]);
+      case BgStyle.ink:
+        return InkBgPainter(t: v, goldColor: t.accent);
+      case BgStyle.abacus:
+        return AbacusBgPainter(t: v, beadColor: t.glows[0], accentBead: t.glows[1]);
+      case BgStyle.glow:
+        // 不会走到：glow 风格由 AppBackground 直接渲染
+        return PaperBgPainter(t: v);
+    }
   }
 }
 

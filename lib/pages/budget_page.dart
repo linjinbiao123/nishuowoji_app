@@ -5,6 +5,7 @@ import '../services/storage.dart';
 import '../services/categories.dart';
 import '../services/vip_service.dart';
 import '../widgets/vip_widgets.dart';
+import '../widgets/rolling_number.dart';
 
 /// 预算管理页（取代原「历史账单」tab）
 /// 月预算：进度圆环 + 已花/剩余，点击编辑（所有用户可用）
@@ -390,10 +391,24 @@ class BudgetPageState extends State<BudgetPage> {
                 const SizedBox(width: 10),
                 Text(a.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppDark.title)),
                 const Spacer(),
-                Text('¥${a.balance.toStringAsFixed(2)}', style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700,
-                  color: a.balance < 0 ? AppColors.danger : AppDark.title,
-                )),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(a.balance < 0 ? '-¥' : '¥', style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700,
+                      color: a.balance < 0 ? AppColors.danger : AppDark.title,
+                    )),
+                    RollingNumber(
+                      value: a.balance.abs(),
+                      decimals: 2,
+                      style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700,
+                        color: a.balance < 0 ? AppColors.danger : AppDark.title,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           )),
@@ -402,9 +417,22 @@ class BudgetPageState extends State<BudgetPage> {
             children: [
               Text('总资产', style: TextStyle(fontSize: 13, color: AppDark.sub)),
               const Spacer(),
-              Text('¥${total.toStringAsFixed(2)}', style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w800, color: theme.accent,
-              )),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('¥', style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w800, color: theme.accent,
+                  )),
+                  RollingNumber(
+                    value: total,
+                    decimals: 2,
+                    style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w800, color: theme.accent,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ],
@@ -681,7 +709,7 @@ class BudgetPageState extends State<BudgetPage> {
                           final amount = double.tryParse(controller.text.trim()) ?? 0;
                           await Storage.setMonthlyBudget(amount);
                           await Storage.setBudgetStartDay(selectedDay);
-                          if (mounted) Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           _loadData();
                         },
                         child: Container(
@@ -936,7 +964,7 @@ class BudgetPageState extends State<BudgetPage> {
                           budgets.remove(name);
                         }
                         await Storage.setCategoryBudgets(budgets);
-                        if (mounted) Navigator.pop(ctx);
+                        if (ctx.mounted) Navigator.pop(ctx);
                         _loadData();
                       },
                       child: Container(

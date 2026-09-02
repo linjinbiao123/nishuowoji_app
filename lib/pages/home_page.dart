@@ -14,6 +14,7 @@ import '../services/voice_parser.dart';
 import '../widgets/vip_widgets.dart';
 import '../widgets/image_viewer.dart';
 import '../widgets/attachment_image.dart';
+import '../widgets/rolling_number.dart';
 import 'add_record_page.dart';
 import 'voice_record_dialog.dart';
 import 'history_page.dart';
@@ -475,16 +476,34 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   Widget _buildSummaryItem(String label, double amount, Color amountColor, bool isExpense) {
     final prefix = isExpense ? '-' : (amount >= 0 ? '+' : '-');
+    // 结余为负时改用警示色，让「亏了」一眼可见
+    final color = label == '结余' && amount < 0
+        ? AppColors.danger
+        : amountColor;
     return Expanded(
       child: Column(
         children: [
           Text(label, style: TextStyle(color: AppDark.sub, fontSize: 12)),
           const SizedBox(height: 8),
-          Text(
-            '$prefix¥${amount.abs().toStringAsFixed(2)}',
-            style: TextStyle(
-              color: amountColor, fontSize: 18, fontWeight: FontWeight.w800,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                '$prefix¥',
+                style: TextStyle(
+                  color: color, fontSize: 14, fontWeight: FontWeight.w800,
+                ),
+              ),
+              RollingNumber(
+                value: amount.abs(),
+                decimals: 2,
+                style: TextStyle(
+                  color: color, fontSize: 18, fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -588,7 +607,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             await Storage.setCurrentLedgerId(l.id);
                             await _refreshAll();
                           }
-                          if (mounted) Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -664,6 +683,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   GestureDetector(
                     onTap: () async {
                       if (!await VipService.isVip()) {
+                        if (!mounted) return;
                         await showVipActivateSheet(context, feature: '多账本');
                         return;
                       }
@@ -891,7 +911,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                               color: selectedColor,
                             ));
                           }
-                          if (mounted) Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           onSaved();
                         },
                         child: Container(
@@ -1338,6 +1358,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     bool isExpense = r.isExpense;
     bool _showAllCategories = false;
     final attachDir = await AttachmentService.dirPath();
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -1648,7 +1669,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 onSelect(name);
                 setDialogState(() {});
               }
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text('添加', style: TextStyle(color: Colors.white)),

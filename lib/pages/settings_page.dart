@@ -1069,7 +1069,7 @@ class SettingsPageState extends State<SettingsPage> {
               await Storage.addCustomCategory(name);
               setSheetState(() => customCats.add(name));
               _loadInfo();
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981),

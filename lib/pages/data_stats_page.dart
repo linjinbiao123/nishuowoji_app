@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/export_helper.dart';
+import '../services/bill_export_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
 import '../services/storage.dart';
@@ -1000,7 +1001,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
                     children: [
                       Text('导出数据', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppDark.title)),
                       const SizedBox(height: 2),
-                      Text('导出账单为 CSV，可选择单个账本或全部', style: TextStyle(fontSize: 11.5, color: AppDark.sub)),
+                      Text('Excel 账单含附件图片，可选择单个账本或全部', style: TextStyle(fontSize: 11.5, color: AppDark.sub)),
                     ],
                   ),
                 ),
@@ -1016,6 +1017,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
   /// 导出入口：数据导出为 VIP 功能，非 VIP 先引导激活
   Future<void> _onExportTap() async {
     if (!await VipService.isVip()) {
+      if (!mounted) return;
       await showVipActivateSheet(context, feature: '数据导出');
       return;
     }
@@ -1102,13 +1104,179 @@ class _DataStatsPageState extends State<DataStatsPage> {
     );
   }
 
-  void _doExport(List<Record> records, String label) {
+  /// 选完账本后让用户选择导出格式
+  Future<void> _doExport(List<Record> records, String label) async {
     if (records.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('「$label」暂无数据可导出')),
       );
       return;
     }
+    final hasImages = records.any((r) => r.images.isNotEmpty);
+    if (!mounted) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppDark.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('选择导出格式',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+              const SizedBox(height: 4),
+              Text(
+                hasImages
+                    ? '「$label」共 ${records.length} 条记录，含附件图片'
+                    : '「$label」共 ${records.length} 条记录',
+                style: TextStyle(fontSize: 12, color: AppDark.sub),
+              ),
+              const SizedBox(height: 16),
+              _formatOption(
+                ctx,
+                icon: Icons.table_chart_outlined,
+                color: const Color(0xFF0984E3),
+                title: 'Excel 账单 + 图片',
+                subtitle: '压缩包，含 xlsx 表格与全部附件图片',
+                onTap: () => Navigator.pop(ctx, 'zip'),
+              ),
+              const SizedBox(height: 10),
+              _formatOption(
+                ctx,
+                icon: Icons.description_outlined,
+                color: const Color(0xFF636E72),
+                title: 'CSV 账单',
+                subtitle: '仅文字数据，体积小，不含图片',
+                onTap: () => Navigator.pop(ctx, 'csv'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    if (choice == 'zip') {
+      await _exportZip(records, label);
+    } else {
+      _exportCsv(records, label);
+    }
+  }
+
+  Widget _formatOption(
+    BuildContext ctx, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 17, color: color),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(fontSize: 11, color: AppDark.sub)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 导出为「Excel + 图片」压缩包
+  Future<void> _exportZip(List<Record> records, String label) async {
+    // 打包可能耗时（图片按原始大小读取），先给出进度提示
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: AppDark.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('正在打包附件…',
+                    style: TextStyle(fontSize: 14, color: AppDark.title)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    BillExportResult result;
+    try {
+      result = await BillExportService.build(records: records);
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导出失败：$e')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    final now = DateTime.now();
+    final stamp = '${now.year}${_p2(now.month)}${_p2(now.day)}';
+    final filename = 'nishuowoji_${label}_$stamp.zip';
+    downloadBytes(result.bytes, filename);
+
+    if (!mounted) return;
+    final sizeMb = result.bytes.length / 1024 / 1024;
+    final sizeText = sizeMb >= 1
+        ? '${sizeMb.toStringAsFixed(1)}MB'
+        : '${(result.bytes.length / 1024).toStringAsFixed(0)}KB';
+    var msg = '已导出 ${result.recordCount} 条记录、${result.imageCount} 张图片（$sizeText）';
+    if (result.hasMissingImages) {
+      msg += '，${result.missingImages.length} 张图片已丢失';
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 4)),
+    );
+  }
+
+  /// 导出为纯 CSV（原有行为）
+  void _exportCsv(List<Record> records, String label) {
     final buffer = StringBuffer();
     buffer.writeln('时间,类型,分类,金额,备注');
     final sorted = List<Record>.from(records)..sort((a, b) => b.time.compareTo(a.time));
@@ -1128,4 +1296,6 @@ class _DataStatsPageState extends State<DataStatsPage> {
       SnackBar(content: Text('已导出「$label」共 ${records.length} 条记录')),
     );
   }
+
+  static String _p2(int v) => v.toString().padLeft(2, '0');
 }

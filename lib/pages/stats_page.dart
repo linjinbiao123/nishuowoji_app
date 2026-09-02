@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/storage.dart';
 import '../theme/app_bg.dart';
+import '../theme/app_theme.dart';
+import '../widgets/rolling_number.dart';
 
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
@@ -358,6 +360,7 @@ class StatsPageState extends State<StatsPage> {
     int pickerMonth = _selectedMonth;
     final now = DateTime.now();
     final accent = AppBgTheme.all[(await Storage.getBgIndex()) % AppBgTheme.all.length].accent;
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -529,6 +532,7 @@ class StatsPageState extends State<StatsPage> {
     int pageStart = (_selectedYear ~/ 12) * 12;
     final currentYear = DateTime.now().year;
     final accent = AppBgTheme.all[(await Storage.getBgIndex()) % AppBgTheme.all.length].accent;
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -666,6 +670,7 @@ class StatsPageState extends State<StatsPage> {
   }
 
   Widget _summaryNum(String label, double amount, Color color) {
+    final showColor = label == '结余' && amount < 0 ? AppColors.danger : color;
     return Expanded(
       child: Column(
         children: [
@@ -673,11 +678,22 @@ class StatsPageState extends State<StatsPage> {
             color: AppDark.sub, fontSize: 12,
           )),
           const SizedBox(height: 6),
-          Text(
-            '¥${amount.toStringAsFixed(2)}',
-            style: TextStyle(
-              color: color, fontSize: 18.5, fontWeight: FontWeight.w800,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('¥', style: TextStyle(
+                color: showColor, fontSize: 13, fontWeight: FontWeight.w800,
+              )),
+              RollingNumber(
+                value: amount,
+                decimals: 2,
+                style: TextStyle(
+                  color: showColor, fontSize: 18.5, fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ],
       ),
