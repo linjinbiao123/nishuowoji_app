@@ -6,6 +6,7 @@ import '../services/storage.dart';
 import '../services/attachment_service.dart';
 import '../widgets/attachment_image.dart';
 import '../widgets/image_viewer.dart';
+import '../widgets/category_glyph.dart';
 
 /// 票据相册：集中查看所有带图片附件的记账记录。
 ///
@@ -29,17 +30,6 @@ class _ReceiptGalleryPageState extends State<ReceiptGalleryPage> {
   // 筛选条件
   bool _onlyInvoice = false;
   int? _yearFilter; // null = 全部年份
-
-  static const _categoryIcons = <String, IconData>{
-    '餐饮': Icons.restaurant, '交通': Icons.directions_bus, '购物': Icons.shopping_bag,
-    '娱乐': Icons.sports_esports, '居家': Icons.home, '医疗': Icons.local_hospital,
-    '教育': Icons.school, '通讯': Icons.phone_android, '服饰': Icons.checkroom,
-    '美容': Icons.face_retouching_natural, '社交': Icons.people, '旅行': Icons.flight,
-    '宠物': Icons.pets, '运动': Icons.fitness_center, '数码': Icons.devices,
-    '礼物': Icons.card_giftcard, '其他': Icons.more_horiz, '工资': Icons.work,
-    '兼职': Icons.laptop, '理财': Icons.trending_up, '礼金': Icons.card_giftcard,
-    '报销': Icons.receipt_long, '红包': Icons.monetization_on,
-  };
 
   static const _categoryColors = <String, Color>{
     '餐饮': Color(0xFFFF6B6B), '交通': Color(0xFF4ECDC4), '购物': Color(0xFFFFE66D),
@@ -107,9 +97,6 @@ class _ReceiptGalleryPageState extends State<ReceiptGalleryPage> {
 
   Color _colorOf(String category) =>
       _categoryColors[category] ?? const Color(0xFF95A5A6);
-
-  IconData _iconOf(String category) =>
-      _categoryIcons[category] ?? Icons.label;
 
   // ---------------- 构建 ----------------
 
@@ -441,7 +428,7 @@ class _ReceiptGalleryPageState extends State<ReceiptGalleryPage> {
                       color: _colorOf(r.category).withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(_iconOf(r.category),
+                    child: CategoryGlyph(name: r.category,
                         size: 20, color: _colorOf(r.category)),
                   ),
                   const SizedBox(width: 10),

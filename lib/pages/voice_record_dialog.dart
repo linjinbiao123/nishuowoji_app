@@ -7,6 +7,7 @@ import '../services/storage.dart';
 import '../services/categories.dart';
 import '../services/asr_service.dart';
 import '../services/asr_model.dart';
+import '../widgets/category_glyph.dart';
 
 enum _Stage { idle, recording, transcribing, result }
 
@@ -583,7 +584,7 @@ class _VoiceRecordSheetState extends State<VoiceRecordSheet>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(c.icon, size: 14, color: selected ? c.color : AppDark.sub),
+                      CategoryGlyph(name: c.name, size: 14, color: selected ? c.color : AppDark.sub),
                       const SizedBox(width: 4),
                       Text(c.name, style: TextStyle(fontSize: 12.5,
                         color: selected ? c.color : AppDark.sub, fontWeight: FontWeight.w500)),

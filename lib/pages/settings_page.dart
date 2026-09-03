@@ -8,6 +8,7 @@ import '../services/categories.dart';
 import '../services/notification_service.dart';
 import '../services/vip_service.dart';
 import '../widgets/vip_widgets.dart';
+import '../widgets/category_glyph.dart';
 import '../services/update_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'agreement_page.dart';
@@ -843,7 +844,7 @@ class SettingsPageState extends State<SettingsPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(c.icon, size: 16, color: c.color),
+                              CategoryGlyph(name: c.name, size: 16, color: c.color),
                               const SizedBox(width: 5),
                               Text(name, style: TextStyle(fontSize: 13, color: Colors.white)),
                               if (deletingCat == name) ...[
@@ -900,7 +901,7 @@ class SettingsPageState extends State<SettingsPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(c.icon, size: 16, color: c.color),
+                              CategoryGlyph(name: c.name, size: 16, color: c.color),
                               const SizedBox(width: 5),
                               Text(name, style: TextStyle(fontSize: 13, color: Colors.white)),
                               if (deletingCat == name) ...[
@@ -955,7 +956,7 @@ class SettingsPageState extends State<SettingsPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Categories.customIcon, size: 16, color: Categories.customColor),
+                                CategoryGlyph(name: name, size: 16, color: Categories.customColor),
                                 const SizedBox(width: 5),
                                 Text(name, style: TextStyle(fontSize: 13, color: Colors.white)),
                                 if (deletingCat == name) ...[

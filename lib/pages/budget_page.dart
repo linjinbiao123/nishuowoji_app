@@ -6,6 +6,7 @@ import '../services/categories.dart';
 import '../services/vip_service.dart';
 import '../widgets/vip_widgets.dart';
 import '../widgets/rolling_number.dart';
+import '../widgets/category_glyph.dart';
 
 /// 预算管理页（取代原「历史账单」tab）
 /// 月预算：进度圆环 + 已花/剩余，点击编辑（所有用户可用）
@@ -807,7 +808,7 @@ class BudgetPageState extends State<BudgetPage> {
                     color: c.color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(c.icon, color: c.color, size: 19),
+                  child: CategoryGlyph(name: c.name, color: c.color, size: 19),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -908,7 +909,7 @@ class BudgetPageState extends State<BudgetPage> {
                       color: c.color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(c.icon, size: 19, color: c.color),
+                    child: CategoryGlyph(name: c.name, size: 19, color: c.color),
                   ),
                   const SizedBox(width: 10),
                   Text('$name · 月预算', style: TextStyle(

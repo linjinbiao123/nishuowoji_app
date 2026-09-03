@@ -15,6 +15,7 @@ import '../widgets/vip_widgets.dart';
 import '../widgets/image_viewer.dart';
 import '../widgets/attachment_image.dart';
 import '../widgets/rolling_number.dart';
+import '../widgets/category_glyph.dart';
 import 'add_record_page.dart';
 import 'voice_record_dialog.dart';
 import 'history_page.dart';
@@ -95,7 +96,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final custom = await Storage.getCustomCategories();
     setState(() {
       for (final name in custom) {
-        _categoryIcons[name] = Categories.customIcon;
         _categoryColors[name] = Categories.customColor;
       }
     });
@@ -262,10 +262,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
     return '${date.year}年${months[date.month - 1]}${date.day}日';
   }
-
-  final _categoryIcons = {
-    for (final c in Categories.builtinExpense) c.name: c.icon,
-  };
 
   final _categoryColors = {
     for (final c in Categories.builtinExpense) c.name: c.color,
@@ -1081,7 +1077,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 children: [
                   Row(
                     children: [
-                      Icon(_categoryIcons[name] ?? Icons.label, size: 14,
+                      CategoryGlyph(name: name, size: 14,
                         color: _categoryColors[name] ?? AppColors.textHint),
                       const SizedBox(width: 5),
                       Text(name, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white)),
@@ -1176,11 +1172,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               separatorBuilder: (_, __) => Divider(height: 1, color: AppDark.divider),
               itemBuilder: (context, index) {
                 final r = todayRecords[index];
-                final icon = _categoryIcons[r.category] ?? Icons.receipt;
                 final color = _categoryColors[r.category] ?? AppColors.primary;
                 return InkWell(
                   onTap: () => _editRecord(r),
-                  child: _buildRecordItem(r, icon, color),
+                  child: _buildRecordItem(r, color),
                 );
               },
             ),
@@ -1189,7 +1184,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildRecordItem(Record r, IconData icon, Color color) {
+  Widget _buildRecordItem(Record r, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -1200,7 +1195,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: CategoryGlyph(name: r.category, color: color, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1482,7 +1477,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ).map((c) {
                       final selected = c.name == selectedCategory;
                       final color = c.color;
-                      final icon = c.icon;
                       return GestureDetector(
                         onTap: () => setDialogState(() => selectedCategory = c.name),
                         child: Container(
@@ -1495,7 +1489,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(icon, size: 14, color: selected ? color : AppDark.sub),
+                              CategoryGlyph(name: c.name, size: 14, color: selected ? color : AppDark.sub),
                               const SizedBox(width: 4),
                               Text(c.name, style: TextStyle(
                                 color: selected ? color : AppDark.sub,
@@ -1663,7 +1657,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             onPressed: () async {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
-                _categoryIcons[name] = Categories.customIcon;
                 _categoryColors[name] = Categories.customColor;
                 await Storage.addCustomCategory(name);
                 onSelect(name);

@@ -4,6 +4,7 @@ import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../widgets/attachment_image.dart';
 import '../widgets/image_viewer.dart';
+import '../widgets/category_glyph.dart';
 import '../services/attachment_service.dart';
 import 'receipt_gallery_page.dart';
 
@@ -22,26 +23,6 @@ class HistoryPageState extends State<HistoryPage> {
   bool _isYearly = false;
   String _attachDir = '';
   List<Account> _accounts = [];
-
-  final _categoryIcons = <String, IconData>{
-    '餐饮': Icons.restaurant,
-    '交通': Icons.directions_bus,
-    '购物': Icons.shopping_bag,
-    '娱乐': Icons.sports_esports,
-    '居家': Icons.home,
-    '医疗': Icons.local_hospital,
-    '教育': Icons.school,
-    '通讯': Icons.phone_android,
-    '服饰': Icons.checkroom,
-    '美容': Icons.face_retouching_natural,
-    '社交': Icons.people,
-    '旅行': Icons.flight,
-    '宠物': Icons.pets,
-    '运动': Icons.fitness_center,
-    '数码': Icons.devices,
-    '礼物': Icons.card_giftcard,
-    '其他': Icons.more_horiz,
-  };
 
   final _categoryColors = <String, Color>{
     '餐饮': const Color(0xFFFF6B6B),
@@ -103,7 +84,6 @@ class HistoryPageState extends State<HistoryPage> {
     final custom = await Storage.getCustomCategories();
     setState(() {
       for (final name in custom) {
-        _categoryIcons[name] = Icons.label;
         _categoryColors[name] = const Color(0xFF95A5A6);
       }
     });
@@ -572,7 +552,6 @@ class HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildRecordItem(Record r) {
-    final icon = _categoryIcons[r.category] ?? Icons.receipt;
     final color = _categoryColors[r.category] ?? AppColors.primary;
 
     return _SwipeableRecord(
@@ -587,7 +566,7 @@ class HistoryPageState extends State<HistoryPage> {
                 color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: CategoryGlyph(name: r.category, color: color, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(

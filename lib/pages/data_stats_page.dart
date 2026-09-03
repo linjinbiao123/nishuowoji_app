@@ -8,6 +8,7 @@ import '../theme/app_bg.dart';
 import '../services/storage.dart';
 import '../services/vip_service.dart';
 import '../widgets/vip_widgets.dart';
+import '../widgets/category_glyph.dart';
 
 class _Bar {
   final String label;
@@ -61,16 +62,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
     Color(0xFFF06292), Color(0xFFAED581), Color(0xFFFFD54F), Color(0xFF4FC3F7),
     Color(0xFF90A4AE), Color(0xFFFFAB91), Color(0xFF80CBC4), Color(0xFFCE93D8),
   ];
-  static const _categoryIcons = <String, IconData>{
-    '餐饮': Icons.restaurant, '交通': Icons.directions_bus, '购物': Icons.shopping_bag,
-    '娱乐': Icons.sports_esports, '居家': Icons.home, '医疗': Icons.local_hospital,
-    '教育': Icons.school, '通讯': Icons.phone_android, '服饰': Icons.checkroom,
-    '美容': Icons.face_retouching_natural, '社交': Icons.people, '旅行': Icons.flight,
-    '宠物': Icons.pets, '运动': Icons.fitness_center, '数码': Icons.devices,
-    '礼物': Icons.card_giftcard, '其他': Icons.more_horiz, '工资': Icons.work,
-    '兼职': Icons.laptop, '理财': Icons.trending_up, '礼金': Icons.card_giftcard,
-    '报销': Icons.receipt_long, '红包': Icons.monetization_on,
-  };
+
 
   Color _colorOf(String category, int index) {
     return _categoryColors[category] ?? _fallbackPalette[index % _fallbackPalette.length];
@@ -917,7 +909,6 @@ class _DataStatsPageState extends State<DataStatsPage> {
 
   Widget _detailRow(Record r) {
     final color = _categoryColors[r.category] ?? const Color(0xFF95A5A6);
-    final icon = _categoryIcons[r.category] ?? Icons.label;
     final timeStr = '${r.time.month}/${r.time.day} ${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -926,7 +917,7 @@ class _DataStatsPageState extends State<DataStatsPage> {
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(9)),
-            child: Icon(icon, size: 17, color: color),
+            child: CategoryGlyph(name: r.category, size: 17, color: color),
           ),
           const SizedBox(width: 10),
           Expanded(

@@ -65,19 +65,8 @@ class AppBgTheme {
       accent: Color(0xFFEC4899),
     ),
 
-    // ── 以下为「中式账簿」系列 ──
-    // 不再使用渐变光晕，改由各自的绘制器渲染：
-    // 宣纸取账本的纸与朱印，水墨取墨滴化开，算盘取算珠浮动。
-
-    AppBgTheme(
-      name: '宣纸',
-      base: [Color(0xFFF6F2E9), Color(0xFFE9E2D3)],
-      glows: [Color(0xFFB03A2E), Color(0xFF8C7A5B)],
-      accent: Color(0xFFB03A2E), // 朱砂
-      isLight: true,
-      style: BgStyle.paper,
-      motion: const Duration(seconds: 34),
-    ),
+    // ── 中式账簿系列 ──
+    // 不用渐变光晕，改由水墨绘制器渲染：几团墨在暗底上缓慢化开，再点几粒泥金。
     AppBgTheme(
       name: '水墨',
       base: [Color(0xFF0B0A09), Color(0xFF15120F)],
@@ -85,14 +74,6 @@ class AppBgTheme {
       accent: Color(0xFFC9A227), // 泥金
       style: BgStyle.ink,
       motion: const Duration(seconds: 26),
-    ),
-    AppBgTheme(
-      name: '算盘',
-      base: [Color(0xFF17110C), Color(0xFF201810)],
-      glows: [Color(0xFF8A5A2B), Color(0xFFA63A2E)],
-      accent: Color(0xFFC87F3A), // 木色
-      style: BgStyle.abacus,
-      motion: const Duration(seconds: 22),
     ),
   ];
 }
@@ -234,15 +215,11 @@ class _PaintedBgState extends State<_PaintedBg>
 
   CustomPainter _painterFor(AppBgTheme t, double v) {
     switch (t.style) {
-      case BgStyle.paper:
-        return PaperBgPainter(t: v, lineColor: t.glows[0], fiberColor: t.glows[1]);
       case BgStyle.ink:
         return InkBgPainter(t: v, goldColor: t.accent);
-      case BgStyle.abacus:
-        return AbacusBgPainter(t: v, beadColor: t.glows[0], accentBead: t.glows[1]);
       case BgStyle.glow:
         // 不会走到：glow 风格由 AppBackground 直接渲染
-        return PaperBgPainter(t: v);
+        return InkBgPainter(t: v);
     }
   }
 }

@@ -6,6 +6,7 @@ import '../services/storage.dart';
 import '../services/categories.dart';
 import '../services/attachment_service.dart';
 import '../widgets/attachment_image.dart';
+import '../widgets/category_glyph.dart';
 
 class AddRecordSheet extends StatefulWidget {
   /// 外部传入的初始附件文件名（例如从首页拍照后带入）。
@@ -441,8 +442,8 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            _getCategoryIcon(_category),
+                          CategoryGlyph(
+                            name: _category,
                             size: 16,
                             color: _getCategoryColor(_category),
                           ),
@@ -525,8 +526,6 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
       ),
     );
   }
-
-  IconData _getCategoryIcon(String name) => Categories.iconOf(name);
 
   Color _getCategoryColor(String name) => Categories.colorOf(name);
 
@@ -655,7 +654,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(c.icon, color: Colors.white, size: 18),
+                            CategoryGlyph(name: c.name, color: Colors.white, size: 18),
                             const SizedBox(width: 6),
                             Text(
                               c.name,
@@ -686,7 +685,7 @@ class _AddRecordSheetState extends State<AddRecordSheet> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Categories.customIcon, color: Colors.white, size: 18),
+                            CategoryGlyph(name: name, color: Colors.white, size: 18),
                             const SizedBox(width: 6),
                             Text(
                               name,

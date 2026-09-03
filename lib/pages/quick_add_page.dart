@@ -6,6 +6,7 @@ import '../services/storage.dart';
 import '../services/quick_add_channel.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_bg.dart';
+import '../widgets/category_glyph.dart';
 
 /// 快捷记账弹窗（由通知栏磁贴拉起，运行在独立的透明 Activity 上）。
 ///
@@ -412,7 +413,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(c.icon, size: 15, color: selected ? c.color : AppDark.hint),
+                CategoryGlyph(name: c.name, size: 15, color: selected ? c.color : AppDark.hint),
                 const SizedBox(width: 5),
                 Text(
                   c.name,
